@@ -1,15 +1,20 @@
 {
   "name": "flavored-markdown",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "ask chet",
+  "scripts": {
+    "build": "doug-lib build",
+    "test": "doug-lib build && doug-lib test",
+    "release": "doug-lib release"
+  },
+  "devDependencies": {
+    "doug-lib": "^0.5.1"
+  },
   "dependencies": {
-    "marked": "^0.3.6"
+    "eulalie": "^2.5.4"
   }
 }
