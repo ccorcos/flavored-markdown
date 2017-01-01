@@ -31,7 +31,7 @@ export const fail = m => s => ({stream: s, fail: m || true})
 // consume one character
 export const item = s => s.length > 0
                   ? {stream: s.move(1), value: s.slice(0,1)}
-                  : {stream: s, fail: 'end of stream'}
+                  : {stream: s, fail: 'item unexpected end of file'}
 
 // map over a parser with a better error message
 export const expected = (parser, message) => s => {
@@ -52,38 +52,49 @@ export const charIs = predicate => s => {
     const c = s.slice(0,1)
     return predicate(c)
          ? {stream: s.move(1), value: c}
-         : {stream: s, fail: `char '${c}' does not match predicate`}
+         : {stream: s, fail: `charIs(${predicate}) does not match '${c}'`}
   } else {
-    return {stream: s, fail: `unexpected end of file`}
+    return {stream: s, fail: `charIs(${predicate}) unexpected end of file`}
   }
 }
 
 // parse a single character
 export const char = c => expected(
   charIs(v => v === c),
-  `char is not '${c}'`
+  `char('${c}') did not match'`
 )
 
 export const notChar = c => expected(
   charIs(v => v !== c),
-  `char not '${c}'`
+  `notChar('${c}') not match`
 )
 
 // parse a digit
 export const digit = expected(
   charIs(c => /^\d/.test(c)),
-  `char is not a digit`
+  `digit did not match`
 )
 
 // parse a string
 export const string = str => s => {
-  if (s.length > str.length) {
+  if (s.length >= str.length) {
     const sub = s.slice(0, str.length)
     return sub === str
          ? {stream: s.move(str.length), value: str}
-         : {stream: s, fail: `string '${sub}' is not '${str}'`}
+         : {stream: s, fail: `string('${str}') is not '${sub}'`}
   } else {
-    return {stream: s, fail: `unexpected end of file`}
+    return {stream: s, fail: `string('${str}') unexpected end of file`}
+  }
+}
+
+export const notString = str => s => {
+  if (s.length > str.length) {
+    const sub = s.slice(0, str.length)
+    return sub !== str
+         ? {stream: s.move(str.length), value: str}
+         : {stream: s, fail: `notString('${str}') is '${sub}'`}
+  } else {
+    return {stream: s, fail: `notString('${str}') unexpected end of file`}
   }
 }
 
@@ -102,7 +113,7 @@ export const regex = re => s => {
   } else {
     return {
       stream: s,
-      fail: `failed regex ${re.toString()}`,
+      fail: `regex(${re.toString()}) failed`,
     }
   }
 }
@@ -135,7 +146,7 @@ export const either = parsers => s => {
       return result
     }
   }
-  return {fail: 'did not match either', stream: s}
+  return {fail: 'either([]) did not match', stream: s}
 }
 
 // parse zero of more of a given parser
@@ -177,6 +188,6 @@ export const peek = parser => s => {
 
 export const eof = s => s.length === 0
                  ? {stream: s}
-                 : {stream: s, fail: 'not end of file'}
+                 : {stream: s, fail: 'eof not end of file'}
 
 export const parse = (parser, string) => parser(Stream(string, 0))

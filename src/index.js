@@ -1,10 +1,10 @@
 import * as p from './pcombs'
 
 export const italic = p.sequence(function*() {
-  // starting italics
+  // starting italic
   yield p.char('*')
 
-  // check for end of italics
+  // check for end of italic
   const {value} = yield p.oneOrMore(
     p.either([
       p.string('\\*'),
@@ -13,7 +13,31 @@ export const italic = p.sequence(function*() {
     ])
   )
 
+  // ending of italic
   yield p.char('*')
+
+  return value.filter(Boolean).join('')
+})
+
+export const bold = p.sequence(function*() {
+  // starting bold
+  yield p.string('**')
+
+  // check for end of bold
+  const {value} = yield p.oneOrMore(
+    p.either([
+      p.string('\\*'),
+      p.notChar('*'),
+      p.sequence(function*() {
+        const {value} = p.char('*')
+        yield p.peek(p.notChar('*'))
+        return value
+      }),
+    ])
+  )
+
+  // ending of bold
+  yield p.string('**')
 
   return value.filter(Boolean).join('')
 })
