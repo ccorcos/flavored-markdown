@@ -6,15 +6,18 @@
   "keywords": [],
   "author": "",
   "license": "ask chet",
-  "scripts": {
-    "build": "doug-lib build",
-    "test": "doug-lib build && doug-lib test",
-    "release": "doug-lib release"
-  },
   "devDependencies": {
-    "doug-lib": "^0.5.1"
+    "ava": "^0.17.0",
+    "babel-cli": "^6.18.0",
+    "babel-polyfill": "^6.20.0",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-stage-0": "^6.16.0"
   },
-  "dependencies": {
-    "eulalie": "^2.5.4"
+  "ava": {
+    "babel": "inherit",
+    "require": [
+      "babel-register",
+      "babel-polyfill"
+    ]
   }
 }
