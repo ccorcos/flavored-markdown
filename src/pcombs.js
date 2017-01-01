@@ -146,7 +146,7 @@ export const either = parsers => s => {
       return result
     }
   }
-  return {fail: 'either([]) did not match', stream: s}
+  return {fail: 'either did not match', stream: s}
 }
 
 // parse zero of more of a given parser
