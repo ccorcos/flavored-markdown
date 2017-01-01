@@ -6,24 +6,36 @@ test('italic', t => {
   let result
   result = p.parse(md.italic, "*yes*");
   t.is(result.value, 'yes')
-  
-  // result = p.parse(md.italic, "* **yes** *");
-  // t.is(result.value, ' **yes** ')
-  //
-  // result = p.parse(md.italic, "* **yes *");
-  // t.is(result.value, ' **yes ')
-  //
-  // result = p.parse(md.italic, "*yes* asd");
-  // t.is(result.value, ' yes')
-  //
-  // result = p.parse(md.italic, "*yes");
-  // t.truthy(result.fail)
-  //
-  // result = p.parse(md.italic, "*yes**");
-  // t.truthy(result.fail)
-  //
-  // result = p.parse(md.italic, "**yes**");
-  // t.truthy(result.fail)
+
+  result = p.parse(md.italic, "***yes***");
+  t.is(result.value, '**yes**')
+
+  result = p.parse(md.italic, "* **yes** *");
+  t.is(result.value, ' **yes** ')
+
+  result = p.parse(md.italic, "** *yes* **");
+  t.truthy(result.fail)
+
+  result = p.parse(md.italic, "* **yes *");
+  t.is(result.value, ' **yes ')
+
+  result = p.parse(md.italic, "***yes*");
+  t.is(result.value, '**yes')
+
+  result = p.parse(md.italic, "*yes* asdf");
+  t.is(result.value, 'yes')
+
+  result = p.parse(md.italic, "*yes\\* asdf*");
+  t.is(result.value, 'yes\\* asdf')
+
+  result = p.parse(md.italic, "*yes");
+  t.truthy(result.fail)
+
+  result = p.parse(md.italic, "**yes*");
+  t.truthy(result.fail)
+
+  result = p.parse(md.italic, "**yes**");
+  t.truthy(result.fail)
 })
 
 

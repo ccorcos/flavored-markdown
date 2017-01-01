@@ -3,18 +3,17 @@ import * as p from './pcombs'
 export const italic = p.sequence(function*() {
   // starting italics
   yield p.char('*')
-  yield p.peek(p.notChar('*'))
 
   // check for end of italics
   const {value} = yield p.oneOrMore(
     p.either([
+      p.string('\\*'),
+      p.string('**'),
       p.notChar('*'),
-      p.sequence(function*() {
-        yield p.char('*')
-        yield p.peek(p.notChar('*'))
-      }),
     ])
   )
+
+  yield p.char('*')
 
   return value.filter(Boolean).join('')
 })

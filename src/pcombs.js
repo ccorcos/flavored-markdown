@@ -6,10 +6,15 @@ export const Stream = (string, cursor=0) => Object.freeze({
   string,
   cursor,
   length: string.length - cursor,
-  slice: (start, end) => string.slice(
-    cursor + start,
-    end ? cursor + end : undefined
-  ),
+  slice: (start, end) => {
+    if (cursor + (end || 0) > string.length) {
+      throw new TypeError('index out of range')
+    }
+    return string.slice(
+      cursor + start,
+      end ? cursor + end : undefined
+    )
+  },
   move: distance => Stream(string, cursor + distance),
 })
 
@@ -43,10 +48,14 @@ export const expected = (parser, message) => s => {
 
 // consume a character given it passes the predicate function
 export const charIs = predicate => s => {
-  const c = s.slice(0,1)
-  return predicate(c)
-       ? {stream: s.move(1), value: c}
-       : {stream: s, fail: `char '${c}' does not match predicate`}
+  if (s.length > 0) {
+    const c = s.slice(0,1)
+    return predicate(c)
+         ? {stream: s.move(1), value: c}
+         : {stream: s, fail: `char '${c}' does not match predicate`}
+  } else {
+    return {stream: s, fail: `unexpected end of file`}
+  }
 }
 
 // parse a single character
@@ -68,10 +77,14 @@ export const digit = expected(
 
 // parse a string
 export const string = str => s => {
-  const sub = s.slice(0, str.length)
-  return sub === str
-       ? {stream: s.move(str.length), value: str}
-       : {stream: s, fail: `string '${sub}' is not '${str}'`}
+  if (s.length > str.length) {
+    const sub = s.slice(0, str.length)
+    return sub === str
+         ? {stream: s.move(str.length), value: str}
+         : {stream: s, fail: `string '${sub}' is not '${str}'`}
+  } else {
+    return {stream: s, fail: `unexpected end of file`}
+  }
 }
 
 // match a regex against the stream
