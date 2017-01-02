@@ -12,6 +12,7 @@ const tests = {
       'quadruple star': ['****yes****', '***yes***'],
       'skip double stars': ['*yes**yes*', 'yes**yes'],
       'dont skip triple stars': ['*yes***yes*', 'yes**'],
+      'escaped stars': ['*yes\\*yes*', 'yes\\*yes'],
     },
     fail: {
       'missing close': '*no',
@@ -27,6 +28,7 @@ const tests = {
       'match last ending double star': ['**yes***', 'yes*'],
       'triple star': ['***yes***', '*yes*'],
       'skip single stars': ['**yes*yes**', 'yes*yes'],
+      'escaped stars': ['**yes\\*\\*yes**', 'yes\\*\\*yes'],
     },
     fail: {
       'missing close': '**no',

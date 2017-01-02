@@ -14,6 +14,8 @@ import * as p from './pcombs'
 // del: noop,
 // text: /^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/
 
+
+
 export const italic = p.sequence(function*() {
   yield p.char('*')
 
@@ -22,6 +24,8 @@ export const italic = p.sequence(function*() {
   // check for end of italic
   const {value: inner} = yield p.oneOrMore(
     p.either([
+      // allow escaped stars
+      p.string('\\*'),
       p.notChar('*'),
       // allow double star if its not at the of the of the file
       p.sequence(function*() {
@@ -53,6 +57,8 @@ export const bold = p.sequence(function*() {
   // check for end of bold
   const {value: inner} = yield p.oneOrMore(
     p.either([
+      // allow escaped stars
+      p.string('\\*'),
       p.notChar('*'),
       // skip over single stars
       p.sequence(function*() {
