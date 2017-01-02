@@ -46,22 +46,34 @@ export const expected = (parser, message) => s => {
   }
 }
 
+export const map = (parser, fn) => s => {
+  const result = parser(s)
+  if (result.fail) {
+    return result
+  } else {
+    return {
+      stream: result.stream,
+      value: fn(result.value),
+    }
+  }
+}
+
 // consume a character given it passes the predicate function
 export const charIs = predicate => s => {
   if (s.length > 0) {
     const c = s.slice(0,1)
     return predicate(c)
          ? {stream: s.move(1), value: c}
-         : {stream: s, fail: `charIs(${predicate}) does not match '${c}'`}
+         : {stream: s, fail: `charIs(predicate) does not match '${c}'`}
   } else {
-    return {stream: s, fail: `charIs(${predicate}) unexpected end of file`}
+    return {stream: s, fail: `charIs(predicate) unexpected end of file`}
   }
 }
 
 // parse a single character
 export const char = c => expected(
   charIs(v => v === c),
-  `char('${c}') did not match'`
+  `char('${c}') did not match`
 )
 
 export const notChar = c => expected(
@@ -133,7 +145,10 @@ export const sequence = generator => s => {
       return result
     }
     stream = result.stream
-    value = result.value
+    // don't push peeked values
+    if (result.value !== undefined) {
+      value = result.value
+    }
   }
 }
 
@@ -183,6 +198,15 @@ export const peek = parser => s => {
     return {stream: s, fail: result.fail}
   } else {
     return {stream: s, value: undefined}
+  }
+}
+
+export const maybe = parser => s => {
+  const result = parser(s)
+  if (result.fail) {
+    return {stream: s}
+  } else {
+    return result
   }
 }
 

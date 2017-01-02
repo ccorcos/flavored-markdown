@@ -1,139 +1,196 @@
 import * as p from './pcombs'
 
-// escape: /^\\([\\`*{}\[\]()#+\-.!_>])/,
-// autolink: /^<([^ >]+(@|:\/)[^ >]+)>/,
-// url: noop,
-// tag: /^<!--[\s\S]*?-->|^<\/?\w+(?:"[^"]*"|'[^']*'|[^'">])*?>/,
-// link: /^!?\[(inside)\]\(href\)/,
-// reflink: /^!?\[(inside)\]\s*\[([^\]]*)\]/,
-// nolink: /^!?\[((?:\[[^\]]*\]|[^\[\]])*)\]/,
-// strong: /^__([\s\S]+?)__(?!_)|^\*\*([\s\S]+?)\*\*(?!\*)/,
-// em: /^\b_((?:[^_]|__)+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,
-// code: /^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/,
-// br: /^ {2,}\n(?!\s*$)/,
-// del: noop,
-// text: /^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/
+const charRun = c =>
+  p.sequence(function*() {
+    const {value} = yield p.oneOrMore(p.char(c))
+    return value.slice(1).join('')
+  })
 
+const charRunWrap = c =>
+  p.sequence(function*() {
+    const {value: left} = yield charRun(c)
+    const {value: inner} = yield p.oneOrMore(
+      p.either([
+        p.string('\\' + c),
+        p.notChar(c),
+      ])
+    )
+    const {value: right} = yield charRun(c)
+    return left + inner.join('') + right
+  })
 
+export const italic = p.map(
+  charRunWrap('*'),
+  text => ({type: 'italic', text})
+)
 
-export const italic = p.sequence(function*() {
-  yield p.char('*')
+const doubleCharRun = c =>
+  p.sequence(function*() {
+    yield p.char(c)
+    const {value} = yield charRun(c)
+    return value
+  })
 
-  const {value: leadingStars} = yield p.zeroOrMore(p.char('*'))
+const doubleCharRunWrap = c =>
+  p.sequence(function*() {
+    const {value: left} = yield doubleCharRun(c)
+    const {value: inner} = yield p.oneOrMore(
+      p.either([
+        p.string('\\' + c),
+        p.notChar(c),
+        p.sequence(function*() {
+          const {value} = yield p.char(c)
+          yield p.peek(p.notChar(c))
+          return value
+        })
+      ])
+    )
+    const {value: right} = yield doubleCharRun(c)
+    return left + inner.join('') + right
+  })
 
-  // check for end of italic
-  const {value: inner} = yield p.oneOrMore(
-    p.either([
-      // allow escaped stars
-      p.string('\\*'),
-      p.notChar('*'),
-      // allow double star if its not at the of the of the file
-      p.sequence(function*() {
-        const {value} = yield p.string('**')
-        yield p.peek(p.notEof)
-        return value
-      }),
-      // otherwise take the last star
-      p.sequence(function*() {
-        const {value} = yield p.char('*')
-        yield p.peek(p.char('*'))
-        return value
-      }),
-    ])
-  )
+export const bold = p.map(
+  doubleCharRunWrap('*'),
+  text => ({type: 'bold', text})
+)
+export const strikethrough = p.map(
+  doubleCharRunWrap('~'),
+  text => ({type: 'strikethrough', text})
+)
 
-  // ending of italic
-  yield p.char('*')
+const wrapLeftRight = (l, r) =>
+  p.sequence(function*() {
+    yield p.char(l)
+    const {value: text} = yield p.zeroOrMore(
+      p.either([
+        p.string('\\' + r),
+        p.notChar(r),
+      ])
+    )
+    yield p.char(r)
+    return text.join('')
+  })
 
-  return leadingStars.concat(inner).filter(Boolean).join('')
+const wrapChar = c => wrapLeftRight(c, c)
+
+export const code = p.map(
+  wrapChar('`'),
+  value => ({type: 'code', value})
+)
+
+export const link = p.sequence(function*() {
+  const {value: text} = yield wrapLeftRight('[', ']')
+  const {value: url} = yield wrapLeftRight('(', ')')
+  return {type: 'link', text, url}
 })
 
-export const bold = p.sequence(function*() {
-  // starting bold
-  yield p.string('**')
-
-  const {value: leadingStars} = yield p.zeroOrMore(p.char('*'))
-
-  // check for end of bold
-  const {value: inner} = yield p.oneOrMore(
-    p.either([
-      // allow escaped stars
-      p.string('\\*'),
-      p.notChar('*'),
-      // skip over single stars
-      p.sequence(function*() {
-        const {value} = yield p.char('*')
-        yield p.peek(p.notChar('*'))
-        return value
-      }),
-      // always match the last double star
-      p.sequence(function*() {
-        const {value} = yield p.char('*')
-        yield p.peek(p.string('**'))
-        return value
-      }),
-    ])
-  )
-
-  // ending of bold
-  yield p.string('**')
-
-  return leadingStars.concat(inner).filter(Boolean).join('')
+export const image = p.sequence(function*() {
+  yield p.char('!')
+  const {value: {text, url}} = yield link
+  return {type: 'image', alt: text, url}
 })
 
-//
-// const bold = seq(function*() {
-//   yield char('*')
-//   const {value: s} = yield many1(either([
-//     seq(char('\\'), () => item),
-//     notChar('*')
-//   ]))
-//   yield char('*')
-//   return s
+export const heading = p.sequence(function*() {
+  yield p.zeroOrMore(p.char(' '))
+  const {value: head} = yield p.oneOrMore(p.char('#'))
+  yield p.zeroOrMore(p.char(' '))
+  const {value: text} = yield p.zeroOrMore(p.notChar('\n'))
+  yield p.maybe(p.char('\n'))
+  return {type: 'heading', size: head.length, text: text.join('').trim()}
+})
+
+export const hr = p.sequence(function*() {
+  yield p.string('---')
+  yield p.either([
+    p.char('\n'),
+    p.eof,
+  ])
+  return {type: 'hr'}
+})
+
+export const def = p.sequence(function*() {
+  const {value: name} = yield wrapLeftRight('[', ']')
+  yield p.string(': ')
+  const {value} = yield p.oneOrMore(p.notChar('\n'))
+  yield p.maybe(p.char('\n'))
+  return {type: 'def', name, value: value.join('').trim()}
+})
+
+export const deflink = p.sequence(function*() {
+  const {value: text} = yield wrapLeftRight('[', ']')
+  const {value: def} = yield wrapLeftRight('[', ']')
+  return {type: 'deflink', text, def}
+})
+
+export const fences = p.sequence(function*() {
+  yield p.string('```')
+  const {value: lang} = yield p.zeroOrMore(p.notChar('\n'))
+  const {value: inner} = yield p.oneOrMore(
+    p.either([
+      p.notChar('`'),
+      p.sequence(function*() {
+        yield p.peek(p.notString('```'))
+        const {value} = yield p.item
+        return value
+      })
+    ])
+  )
+  yield p.string('```')
+  return {
+    type: 'fences',
+    language: lang.join('').trim(),
+    value: inner.join('').trim(),
+  }
+})
+
+// const indent = p.sequence(function*() {
+//   const {value} = yield p.zeroOrMore(p.char(' '))
+//   const {value: text} = yield p.zeroOrMore(p.notChar('\n'))
+//   return {text: text.join('').trim(), size: value.length}
 // })
 //
+// const prefixed = parser =>
+//   p.sequence(function*() {
+//     yield parser
+//     const {value: text} = yield p.zeroOrMore(p.notChar('\n'))
+//     return text.join('').trim()
+//   })
 //
-// function notString(s) {
-//   function notStringP(s) {
-//     if (s.length > 0) {
-//       return seq(
-//         notChar(s[0]),
-//         () => seq(notStringP(s.slice(1)))
-//       )
-//     }
-//     return unit("");
-//   }
-//   return expected(notStringP(s), `"${s}"`);
-// }
+// const blockquote = prefixed('> ')
 //
+// const unorderedList = p.either([
+//   prefixed(p.string('- ')),
+//   prefixed(p.string('* ')),
+//   prefixed(p.string('+ ')),
+// ])
 //
-// // export const quotedString = expected(seq(function*() {
-// //   yield char("\"");
-// //   const {value: s} = yield many(either(
-// //     seq(char("\\"), () => item),
-// //     notChar("\"")
-// //   ));
-// //   yield char("\"");
-// //   return s;
-// // }), "a quoted string");
+// const orderedList = prefixed(
+//   p.sequence(function*() {
+//     yield p.oneOrMore(p.digit)
+//     yield p.either([
+//       p.char(')'),
+//       p.char('.'),
+//     ])
+//     yield p.char(' ')
+//   })
+// )
+
+
+// const precedence = [
+//   p.map(star2, merge({type: 'bold'})),
+//   star,
+//   underscore2,
+//   underscore,
+//   tilde2,
+//   tilde,
+//   tick,
+//   image,
+//   link,
+//   deflink,
+// ]
 //
-// /*
-// md language features
-//
-// wrapped inline text: *,**, ~, ~~, _, __, `, [], (), {}
-// wrapped block: ```
-// prefixed block text: >, indentation
-//
-// normal heading
-// underline heading
-// hr
-// url var def
-// autolink
-// paragraph
-// code block
-// list
-// table
-// link
-// image
-// */
-//
+// // TODO we need to know what token we're getting back!
+// const inline = p.sequence(function*() {
+//   const {which} = p.either(precedence)
+//   // tail call to recursively parse the inside with a given precedence
+// })
