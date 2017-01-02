@@ -77,3 +77,55 @@ test('peek', t => {
   result = p.parse(parser, 'ac')
   t.truthy(result.fail)
 })
+
+test('quoted string', t => {
+  const parser = p.sequence(function*() {
+    yield p.char('"')
+    const {value} = yield p.zeroOrMore(
+      p.either([
+        p.string('\\"'),
+        p.notChar('"'),
+      ])
+    )
+    yield p.char('"')
+    return value.join('').replace(/\\"/g, '"')
+  })
+  let result
+  result = p.parse(parser, '""')
+  t.is(result.value, '')
+  result = p.parse(parser, '"asdf"')
+  t.is(result.value, 'asdf')
+  result = p.parse(parser, '"as\\"df"')
+  t.is(result.value, 'as"df')
+})
+
+// TODO map over parse result somehow?
+
+test('zeroOrMore either peek', t => {
+  // parse sentences that end with !!
+  const parser = p.sequence(function*() {
+    const {value} = yield p.zeroOrMore(
+      p.either([
+        p.string('\\!'),
+        p.notChar('!'),
+        p.sequence(function*() {
+          const {value} = yield p.char('!')
+          yield p.peek(p.notChar('!'))
+          return value
+        }),
+      ])
+    )
+    yield p.string('!!')
+    return value.join('')
+  })
+
+  let result
+  result = p.parse(parser, 'hello!!')
+  t.is(result.value, 'hello')
+  result = p.parse(parser, 'hello! world!!')
+  t.is(result.value, 'hello! world')
+  result = p.parse(parser, 'hello!\\! world!!')
+  t.is(result.value, 'hello!\\! world')
+  result = p.parse(parser, 'hello! world!')
+  t.truthy(result.fail)
+})

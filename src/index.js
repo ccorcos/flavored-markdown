@@ -29,8 +29,13 @@ export const bold = p.sequence(function*() {
       p.string('\\*'),
       p.notChar('*'),
       p.sequence(function*() {
-        const {value} = p.char('*')
+        const {value} = yield p.char('*')
         yield p.peek(p.notChar('*'))
+        return value
+      }),
+      p.sequence(function*() {
+        const {value} = yield p.char('*')
+        yield p.peek(p.string('**'))
         return value
       }),
     ])
