@@ -6,34 +6,32 @@ const tests = {
   italic: {
     success: {
       'basic case': ['*yes*', 'yes'],
-      'trailing text': ['*yes* asdf', 'yes'],
-      'bold inside': ['* **yes** *', ' **yes** '],
-      'bold immediately inside': ['***yes***', '**yes**'],
-      'incomplete bold inside': ['***yes*', '**yes'],
-      'escaped star': ['*yes\\*asdf*', 'yes\\*asdf'],
-      // '': ['**yes*', '*yes'],
-      // '': ['*yes**', 'yes*'],
+      'match first starting star': ['**yes*', '*yes'],
+      'match last ending star': ['*yes**', 'yes*'],
+      'triple star': ['***yes***', '**yes**'],
+      'quadruple star': ['****yes****', '***yes***'],
+      'skip double stars': ['*yes**yes*', 'yes**yes'],
+      'dont skip triple stars': ['*yes***yes*', 'yes**'],
     },
     fail: {
       'missing close': '*no',
-      'bold not italic': '**no**',
-      'incomplete bold': '**no*',
-      'incomplete italic with bold inside': '* **no**',
+      'empty two stars': '**',
+      'empty three stars': '***',
+      'empty four stars': '****',
     }
   },
   bold: {
     success: {
       'basic case': ['**yes**', 'yes'],
-      'trailing text': ['**yes** asdf', 'yes'],
-      'italic inside': ['** *yes* **', ' *yes* '],
-      'italic immediately inside': ['***yes***', '*yes*'],
-      'incomplete italic inside': ['***yes**', '*yes'],
-      'escaped star': ['**yes\\*asdf**', 'yes\\*asdf'],
+      'match first starting double star': ['***yes**', '*yes'],
+      'match last ending double star': ['**yes***', 'yes*'],
+      'triple star': ['***yes***', '*yes*'],
+      'skip single stars': ['**yes*yes**', 'yes*yes'],
     },
     fail: {
       'missing close': '**no',
       'incomplete close': '**no*',
-      'italic not bold': '*no*'
+      'single star': '*no*',
     },
   },
 }

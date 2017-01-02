@@ -190,4 +190,8 @@ export const eof = s => s.length === 0
                  ? {stream: s}
                  : {stream: s, fail: 'eof not end of file'}
 
+export const notEof = s => s.length > 0
+                 ? {stream: s}
+                 : {stream: s, fail: 'notEof is end of file'}
+
 export const parse = (parser, string) => parser(Stream(string, 0))
