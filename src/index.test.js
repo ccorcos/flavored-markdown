@@ -205,6 +205,138 @@ const _multiline = {
   },
 }
 
+// inline recursive parsers
+const inline = {
+  code: {
+    success: {
+      'basic case': [
+        '`this is code`',
+        {
+          type: 'code',
+          value: 'this is code',
+        }
+      ]
+    }
+  },
+  bold: {
+    success: {
+      'basic case': [
+        '**this is bold**',
+        {
+          type: 'bold',
+          children: [{
+            type: 'text',
+            value: 'this is bold'
+          }],
+        }
+      ],
+    },
+  },
+  italic: {
+    success: {
+      'basic case': [
+        '*this is italic*',
+        {
+          type: 'italic',
+          children: [{
+            type: 'text',
+            value: 'this is italic'
+          }],
+        }
+      ],
+    },
+  },
+  strikethrough: {
+    success: {
+      'basic case': [
+        '~~this is strikethrough~~',
+        {
+          type: 'strikethrough',
+          children: [{
+            type: 'text',
+            value: 'this is strikethrough',
+          }],
+        }
+      ],
+    },
+  },
+  link: {
+    success: {
+      'basic case': [
+        '[hello](world)',
+        {
+          type: 'link',
+          url: 'world',
+          children: [{
+            type: 'text',
+            value: 'hello',
+          }]
+        }
+      ],
+    },
+  },
+  deflink: {
+    success: {
+      'basic case': [
+        '[hello][world]',
+        {
+          type: 'deflink',
+          def: 'world',
+          children: [{
+            type: 'text',
+            value: 'hello',
+          }]
+        }
+      ],
+    },
+  },
+  inline: {
+    success: {
+      'bold inside italic': [
+        '***bold** italic*',
+        [{
+          type: 'italic',
+          children: [{
+            type: 'bold',
+            children: [{
+              type: 'text',
+              value: 'bold',
+            }],
+          }, {
+            type: 'text',
+            value: ' italic',
+          }]
+        }]
+      ],
+      'italic inside bold': [
+        '***italic* bold**',
+        [{
+          type: 'bold',
+          children: [{
+            type: 'italic',
+            children: [{
+              type: 'text',
+              value: 'italic',
+            }],
+          }, {
+            type: 'text',
+            value: ' bold',
+          }]
+        }]
+      ],
+    }
+  }
+}
+
+// code,
+// bold,
+// italic,
+// strikethrough,
+// image,
+// link,
+// deflink,
+// character,
+
 const assertions = {
   success: (t, parser, [input, output]) => {
     const result = p.parse(parser, input)
@@ -243,8 +375,8 @@ const runOneTest = (tests, [parserName, assertion, name]) => {
 const tests = {
   ..._inline,
   ..._multiline,
+  ...inline,
 }
 
-// runOneTest(tests, ['_listItem', 'success', 'basic multiline case'])
-
+// runOneTest(tests, ['inline', 'success', 'bold inside italic'])
 runTests(tests)

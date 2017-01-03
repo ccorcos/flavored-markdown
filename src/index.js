@@ -21,10 +21,13 @@ const charRunWrap = c =>
 
 export const _italic = charRunWrap('*')
 
-// export const italic = p.map(_italic, text => ({
-//   type: 'italic',
-//   children: parse(inline, text),
-// }))
+export const italic = p.map(
+  _italic,
+  text => ({
+    type: 'italic',
+    children: p.parse(_inline(italic), text).value,
+  })
+)
 
 const doubleCharRun = c =>
   p.sequence(function*() {
@@ -53,17 +56,23 @@ const doubleCharRunWrap = c =>
 
 export const _bold = doubleCharRunWrap('*')
 
-// export const bold = p.map(_bold, text => ({
-//   type: 'bold',
-//   children: parse(inline, text),
-// }))
+export const bold = p.map(
+  _bold,
+  text => ({
+    type: 'bold',
+    children: p.parse(_inline(bold), text).value,
+  })
+)
 
 export const _strikethrough = doubleCharRunWrap('~')
 
-// export const strikethrough = p.map(_strikethrough, text => ({
-//   type: 'strikethrough',
-//   children: parse(inline, text),
-// }))
+export const strikethrough = p.map(
+  _strikethrough,
+  text => ({
+    type: 'strikethrough',
+    children: p.parse(_inline(strikethrough), text).value,
+  })
+)
 
 const wrapLeftRight = (l, r) =>
   p.sequence(function*() {
@@ -82,10 +91,13 @@ const wrapChar = c => wrapLeftRight(c, c)
 
 export const _code = wrapChar('`')
 
-// export const code = p.map(_code, text => ({
-//   type: 'code',
-//   value: text,
-// }))
+export const code = p.map(
+  _code,
+  text => ({
+    type: 'code',
+    value: text,
+  })
+)
 
 export const _link = p.sequence(function*() {
   const {value: text} = yield wrapLeftRight('[', ']')
@@ -93,11 +105,14 @@ export const _link = p.sequence(function*() {
   return {text, url}
 })
 
-// export const link = p.map(_link, ({text, url}) => ({
-//   type: 'link',
-//   url,
-//   children: parse(inline, text),
-// }))
+export const link = p.map(
+  _link,
+  ({text, url}) => ({
+    type: 'link',
+    url,
+    children: p.parse(_inline(link), text).value,
+  })
+)
 
 export const image = p.sequence(function*() {
   yield p.char('!')
@@ -111,11 +126,14 @@ export const _deflink = p.sequence(function*() {
   return {text, def}
 })
 
-// export const deflink = p.map(_deflink, ({text, def}) => ({
-//   type: 'deflink',
-//   def,
-//   children: parse(inline, text),
-// }))
+export const deflink = p.map(
+  _deflink,
+  ({text, def}) => ({
+    type: 'deflink',
+    def,
+    children: p.parse(_inline(deflink), text).value,
+  })
+)
 
 const olStart = p.sequence(function*() {
   yield p.digit
@@ -177,20 +195,20 @@ export const _listItem = p.sequence(function*() {
 
 export const _list = p.oneOrMore(_listItem)
 
-// export const list = p.map(
-//   _list
-//   items => ({
-//     type: 'list',
-//     ordered: items[0].ordered,
-//     children: items.map(({ordered, lines}) => ({
-//       type: 'listItem',
-//       ordered,
-//       children: lines => lines.length === 1
-//               ? [p.parse(inline, lines[0])]
-//               : p.parse(blocks, lines),
-//     }))
-//   })
-// )
+export const list = p.map(
+  _list,
+  items => ({
+    type: 'list',
+    ordered: items[0].ordered,
+    children: items.map(({ordered, lines}) => ({
+      type: 'listItem',
+      ordered,
+      children: lines => lines.length === 1
+              ? [p.parse(inline, lines[0]).value]
+              : p.parse(blocks, lines).value,
+    }))
+  })
+)
 
 export const fences = p.sequence(function*() {
   const {value: lang} = yield p.chain(p.item, p.sequence(function*() {
@@ -221,11 +239,14 @@ export const _heading = p.sequence(function*() {
   return {size: head.length, text}
 })
 
-// export const heading = p.map(_heading, ({size, text}) => ({
-//   type: 'heading',
-//   size,
-//   children: p.parse(inline, text)
-// })
+export const heading = p.map(
+  _heading,
+  ({size, text}) => ({
+    type: 'heading',
+    size,
+    children: p.parse(inline, text).value
+  })
+)
 
 export const hr = p.sequence(function*() {
   yield p.string('---')
@@ -261,31 +282,59 @@ export const _blockquote = p.map(
   list => list.map(s => s.trim()).join('\n')
 )
 
-// export const blockquote = p.map(_blockquote, text => {
-//   type: 'blockquote',
-//   children: parse(inline, text)
-// })
+export const blockquote = p.map(
+  _blockquote,
+  text => ({
+    type: 'blockquote',
+    children: p.parse(inline, text).value
+  })
+)
 
+const character = p.map(
+  p.item,
+  c => ({type: 'char', value: c})
+)
 
+const precedence = [
+  code,
+  bold,
+  italic,
+  strikethrough,
+  image,
+  link,
+  deflink,
+  character,
+]
 
-// TODO get rest of the inline parsers based on precesence
-// the recursion shouldn't be a problem here since the call stack is limited
-// to the number parsers here
-// const precedence = [
-//   code,
-//   bold,
-//   italic,
-//   strikethrough,
-//   image,
-//   link,
-//   deflink,
-// ]
+const isCharToken = ({type}) => type === 'char'
 
-const inline = (text, after) => {
+const charTokens = p.oneOrMore(p.itemIs(isCharToken))
 
+const charTokensToTextToken = chars => ({
+  type: 'text',
+  value: chars.map(c => c.value).join('')
+})
+
+const slurpCharTokens = p.map(charTokens, charTokensToTextToken)
+
+const charsToText = p.zeroOrMore(
+  p.either([
+    slurpCharTokens,
+    p.item,
+  ])
+)
+
+export const _inline = (after) => {
+  const parsers = precedence.slice(precedence.indexOf(after) + 1)
+  return p.map(
+    p.zeroOrMore(p.either(parsers)),
+    tokens => p.parse(charsToText, tokens).value
+  )
 }
 
-//
+export const inline = _inline()
+
+
 // // clean up for windows, etc.
 // const clean = string =>
 //   string.replace(/\r\n|\r/g, '\n')

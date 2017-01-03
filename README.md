@@ -8,6 +8,8 @@
 - string renderer
 - code renderer
 
+- underline, superscript, subscript, latex
+
 - cli tool
 - webpack loader
 
