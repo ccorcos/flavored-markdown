@@ -72,7 +72,7 @@ test('peek', t => {
   let result
   result = p.parse(parser, 'ab')
   t.is(result.value, 'a')
-  result = p.parse(p.item, result.stream)
+  result = p.item(result.stream)
   t.is(result.value, 'b')
   result = p.parse(parser, 'ac')
   t.truthy(result.fail)
@@ -98,8 +98,6 @@ test('quoted string', t => {
   result = p.parse(parser, '"as\\"df"')
   t.is(result.value, 'as"df')
 })
-
-// TODO map over parse result somehow?
 
 test('zeroOrMore either peek', t => {
   // parse sentences that end with !!
@@ -127,5 +125,37 @@ test('zeroOrMore either peek', t => {
   result = p.parse(parser, 'hello!\\! world!!')
   t.is(result.value, 'hello!\\! world')
   result = p.parse(parser, 'hello! world!')
+  t.truthy(result.fail)
+})
+
+test('map', t => {
+  const parser = p.map(
+    p.oneOrMore(p.char('x')),
+    l => l.join('')
+  )
+  let result
+  result = p.parse(parser, 'xxxy')
+  t.is(result.value, 'xxx')
+})
+
+test('chain', t => {
+  const parser = p.oneOrMore(p.chain(p.item, p.string('x')))
+  let result
+  result = p.parse(parser, ['x', 'x', 'xy', 'y'])
+  t.deepEqual(result.value, ['x', 'x', 'x'])
+  result = p.item(result.stream)
+  t.is(result.value, 'y')
+})
+
+test('string', t => {
+  const parser = p.string('abc')
+  let result
+  result = p.parse(parser, 'abc')
+  t.is(result.value, 'abc')
+  result = p.parse(parser, 'abcd')
+  t.is(result.value, 'abc')
+  result = p.parse(parser, 'abd')
+  t.truthy(result.fail)
+  result = p.parse(parser, 'ab')
   t.truthy(result.fail)
 })

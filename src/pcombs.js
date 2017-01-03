@@ -2,20 +2,21 @@
 // inspired by https://github.com/bodil/eulalie
 
 // Keep track of a string and a cursor to avoid having to chop up strings
-export const Stream = (string, cursor=0) => Object.freeze({
-  string,
+export const Stream = (iterable, cursor=0) => Object.freeze({
+  iterable,
   cursor,
-  length: string.length - cursor,
+  length: iterable.length - cursor,
+  head: () => iterable[cursor],
   slice: (start, end) => {
-    if (cursor + (end || 0) > string.length) {
+    if (cursor + (end || 0) > iterable.length) {
       throw new TypeError('index out of range')
     }
-    return string.slice(
+    return iterable.slice(
       cursor + start,
       end ? cursor + end : undefined
     )
   },
-  move: distance => Stream(string, cursor + distance),
+  move: distance => Stream(iterable, cursor + distance),
 })
 
 // a parser gets a stream and must return one of two things:
@@ -30,7 +31,7 @@ export const fail = m => s => ({stream: s, fail: m || true})
 
 // consume one character
 export const item = s => s.length > 0
-                  ? {stream: s.move(1), value: s.slice(0,1)}
+                  ? {stream: s.move(1), value: s.head()}
                   : {stream: s, fail: 'item unexpected end of file'}
 
 // map over a parser with a better error message
@@ -46,44 +47,63 @@ export const expected = (parser, message) => s => {
   }
 }
 
+// map over the resulting value of the parse
 export const map = (parser, fn) => s => {
   const result = parser(s)
   if (result.fail) {
     return result
-  } else {
+  }
+  return {
+    stream: result.stream,
+    value: fn(result.value),
+  }
+}
+
+// parse the result of the first parser with a second parser
+export const chain = (parser, fn) => s => {
+  const result = parser(s)
+  if (result.fail) {
+    return result
+  }
+  const inner = fn(Stream(result.value, 0))
+  if (inner.fail) {
     return {
-      stream: result.stream,
-      value: fn(result.value),
+      fail: inner.fail,
+      stream: s,
     }
+  }
+  return {
+    stream: result.stream,
+    value: inner.value,
   }
 }
 
 // consume a character given it passes the predicate function
-export const charIs = predicate => s => {
+export const itemIs = predicate => s => {
   if (s.length > 0) {
-    const c = s.slice(0,1)
+    const c = s.head()
     return predicate(c)
          ? {stream: s.move(1), value: c}
-         : {stream: s, fail: `charIs(predicate) does not match '${c}'`}
+         : {stream: s, fail: `itemIs(predicate) does not match '${c}'`}
   } else {
-    return {stream: s, fail: `charIs(predicate) unexpected end of file`}
+    return {stream: s, fail: `itemIs(predicate) unexpected end of file`}
   }
 }
 
 // parse a single character
 export const char = c => expected(
-  charIs(v => v === c),
+  itemIs(v => v === c),
   `char('${c}') did not match`
 )
 
 export const notChar = c => expected(
-  charIs(v => v !== c),
+  itemIs(v => v !== c),
   `notChar('${c}') not match`
 )
 
 // parse a digit
 export const digit = expected(
-  charIs(c => /^\d/.test(c)),
+  itemIs(c => /^\d/.test(c)),
   `digit did not match`
 )
 
@@ -100,14 +120,11 @@ export const string = str => s => {
 }
 
 export const notString = str => s => {
-  if (s.length > str.length) {
-    const sub = s.slice(0, str.length)
-    return sub !== str
-         ? {stream: s.move(str.length), value: str}
-         : {stream: s, fail: `notString('${str}') is '${sub}'`}
-  } else {
-    return {stream: s, fail: `notString('${str}') unexpected end of file`}
-  }
+  const end = s.length >= str.length ? str.length : s.length
+  const sub = s.slice(0, end)
+  return sub !== str
+       ? {stream: s.move(end), value: sub}
+       : {stream: s, fail: `notString('${str}') is '${sub}'`}
 }
 
 // match a regex against the stream
@@ -130,24 +147,34 @@ export const regex = re => s => {
   }
 }
 
+// given a generator that yields parsers, iterate through calling next
+// with the result of the previous parse until we return a final parse result
+export const generate = generator => s => {
+  const iter = generator()
+  let result = {stream: s}
+  while (true) {
+    const next = iter.next(result)
+    if (next.done) {
+      return next.value
+    }
+    result = next.value(result.stream)
+  }
+}
+
 // parse a sequence given generator that emits parsers
+// exactly like generate, but fails for you if any parser fails and only
+// requires you to return the value of a successful parse
 export const sequence = generator => s => {
   const iter = generator()
-  let value = undefined
-  let stream = s
+  let result = {stream: s}
   while (true) {
-    const next = iter.next({stream, value})
+    const next = iter.next(result)
     if (next.done) {
-      return {stream, value: next.value}
+      return {stream: result.stream, value: next.value}
     }
-    const result = next.value(stream)
+    result = next.value(result.stream)
     if (result.fail) {
       return result
-    }
-    stream = result.stream
-    // don't push peeked values
-    if (result.value !== undefined) {
-      value = result.value
     }
   }
 }

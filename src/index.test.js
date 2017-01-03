@@ -2,17 +2,18 @@ import test from 'ava'
 import * as md from './index'
 import * as p from './pcombs'
 
-const tests = {
-  italic: {
+// non-recursive inline parsers
+const _inline = {
+  _italic: {
     success: {
-      'basic case': ['*yes*', {type: 'italic', text: 'yes'}],
-      'match first starting star': ['**yes*', {type: 'italic', text: '*yes'}],
-      'match last ending star': ['*yes**', {type: 'italic', text: 'yes*'}],
-      'triple star': ['***yes***', {type: 'italic', text: '**yes**'}],
-      'quadruple star': ['****yes****', {type: 'italic', text: '***yes***'}],
-      'bold must have precedence': ['*yes**yes*', {type: 'italic', text: 'yes*'}],
-      'match last ending star': ['*yes***yes*', {type: 'italic', text: 'yes**'}],
-      'escaped stars': ['*yes\\*yes*', {type: 'italic', text: 'yes\\*yes'}],
+      'basic case': ['*yes*', 'yes'],
+      'match first starting star': ['**yes*', '*yes'],
+      'match last ending star': ['*yes**', 'yes*'],
+      'triple star': ['***yes***', '**yes**'],
+      'quadruple star': ['****yes****', '***yes***'],
+      'bold must have precedence': ['*yes**yes*', 'yes*'],
+      'match last ending star': ['*yes***yes*', 'yes**'],
+      'escaped stars': ['*yes\\*yes*', 'yes\\*yes'],
     },
     fail: {
       'missing close': '*no',
@@ -21,14 +22,14 @@ const tests = {
       'empty four stars': '****',
     }
   },
-  bold: {
+  _bold: {
     success: {
-      'basic case': ['**yes**', {type: 'bold', text: 'yes'}],
-      'match first starting double star': ['***yes**', {type: 'bold', text: '*yes'}],
-      'match last ending double star': ['**yes***', {type: 'bold', text: 'yes*'}],
-      'triple star': ['***yes***', {type: 'bold', text: '*yes*'}],
-      'skip single stars': ['**yes*yes**', {type: 'bold', text: 'yes*yes'}],
-      'escaped stars': ['**yes\\*\\*yes**', {type: 'bold', text: 'yes\\*\\*yes'}],
+      'basic case': ['**yes**', 'yes'],
+      'match first starting double star': ['***yes**', '*yes'],
+      'match last ending double star': ['**yes***', 'yes*'],
+      'triple star': ['***yes***', '*yes*'],
+      'skip single stars': ['**yes*yes**', 'yes*yes'],
+      'escaped stars': ['**yes\\*\\*yes**', 'yes\\*\\*yes'],
     },
     fail: {
       'missing close': '**no',
@@ -36,14 +37,14 @@ const tests = {
       'single star': '*no*',
     },
   },
-  strikethrough: {
+  _strikethrough: {
     success: {
-      'basic case': ['~~yes~~', {type: 'strikethrough', text: 'yes'}],
-      'match first starting double tilde': ['~~~yes~~', {type: 'strikethrough', text: '~yes'}],
-      'match last ending double tilde': ['~~yes~~~', {type: 'strikethrough', text: 'yes~'}],
-      'triple tilde': ['~~~yes~~~', {type: 'strikethrough', text: '~yes~'}],
-      'skip single tildes': ['~~yes~yes~~', {type: 'strikethrough', text: 'yes~yes'}],
-      'escaped tildes': ['~~yes\\~\\~yes~~', {type: 'strikethrough', text: 'yes\\~\\~yes'}],
+      'basic case': ['~~yes~~', 'yes'],
+      'match first starting double tilde': ['~~~yes~~', '~yes'],
+      'match last ending double tilde': ['~~yes~~~', 'yes~'],
+      'triple tilde': ['~~~yes~~~', '~yes~'],
+      'skip single tildes': ['~~yes~yes~~', 'yes~yes'],
+      'escaped tildes': ['~~yes\\~\\~yes~~', 'yes\\~\\~yes'],
     },
     fail: {
       'missing close': '~~no',
@@ -51,20 +52,20 @@ const tests = {
       'single tilde': '~no~',
     },
   },
-  code: {
+  _code: {
     success: {
-      'basic case': ['`hello`', {type: 'code', value: 'hello'}],
-      'escaped code': ['`hello \\` world`', {type: 'code', value: 'hello \\` world'}],
+      'basic case': ['`hello`', 'hello'],
+      'escaped code': ['`hello \\` world`', 'hello \\` world'],
     },
     fail: {
       'missing close': '`hello',
     }
   },
-  link: {
+  _link: {
     success: {
-      'basic case': ['[blah](link)', {type: 'link', text: 'blah', url: 'link'}],
-      'can be empty': ['[]()', {type: 'link', text: '', url: ''}],
-      'escaped characters': ['[[\\]]((\\))', {type: 'link', text: '[\\]', url: '(\\)'}],
+      'basic case': ['[blah](link)', {text: 'blah', url: 'link'}],
+      'can be empty': ['[]()', {text: '', url: ''}],
+      'escaped characters': ['[[\\]]((\\))', {text: '[\\]', url: '(\\)'}],
     },
   },
   image: {
@@ -72,12 +73,105 @@ const tests = {
       'basic case': ['![blah](link)', {type: 'image', alt: 'blah', url: 'link'}],
     },
   },
-  heading: {
+  _deflink: {
     success: {
-      'h1 case': ['# h1', {type: 'heading', size: 1, text: 'h1'}],
-      'h2 case': ['## h2', {type: 'heading', size: 2, text: 'h2'}],
-      'allows space': ['# hello world', {type: 'heading', size: 1, text: 'hello world'}],
-      'allows newline': ['# hello world \n', {type: 'heading', size: 1, text: 'hello world'}],
+      'basic case': ['[name][value]', {text: 'name', def: 'value'}],
+    },
+  },
+}
+
+// non-recursive line parsers
+const _multiline = {
+  _listItem: {
+    success: {
+      'basic unordered case': [
+        ['- blah'],
+        {
+          ordered: false,
+          lines: ['blah'],
+        },
+      ],
+      'basic ordered case': [
+        ['1. blah'],
+        {
+          ordered: true,
+          lines: ['blah'],
+        },
+      ],
+      'basic multiline case': [
+        ['- blah', '  yes'],
+        {
+          ordered: false,
+          lines: ['blah', 'yes'],
+        },
+      ],
+      'multiline skip blanks': [
+        ['- blah', '', '  yes'],
+        {
+          ordered: false,
+          lines: ['blah', '', 'yes'],
+        },
+      ],
+      'multiline end at non-indent': [
+        ['- blah', '', '  yes', '  - inner item', '- stop here'],
+        {
+          ordered: false,
+          lines: ['blah', '', 'yes', '- inner item'],
+        },
+      ],
+    },
+  },
+  _list: {
+    success: {
+      'basic case': [
+        ['- one', '- two', '- three'],
+        [
+          {ordered: false, lines: ['one']},
+          {ordered: false, lines: ['two']},
+          {ordered: false, lines: ['three']},
+        ],
+      ],
+      'multiline items': [
+        ['- one', '  - one one', '- two'],
+        [
+          {ordered: false, lines: ['one', '- one one']},
+          {ordered: false, lines: ['two']},
+        ],
+      ],
+      'skip blanks': [
+        ['- one', '', '  - one one', ' ', '- two'],
+        [
+          {ordered: false, lines: ['one', '', '- one one', '']},
+          {ordered: false, lines: ['two']},
+        ],
+      ],
+      'end on unindented': [
+        ['- one', '  - one one', '- two', 'stop'],
+        [
+          {ordered: false, lines: ['one', '- one one']},
+          {ordered: false, lines: ['two']},
+        ],
+      ],
+    },
+  },
+  fences: {
+    success: {
+      'basic case': [
+        ['```', 'this is code', '```'],
+        {type: 'fences', language: '', value: 'this is code'}
+      ],
+      'language case': [
+        ['```js', 'this is code', '```'],
+        {type: 'fences', language: 'js', value: 'this is code'},
+      ],
+    },
+  },
+  _heading: {
+    success: {
+      'h1 case': ['# h1', {size: 1, text: 'h1'}],
+      'h2 case': ['## h2', {size: 2, text: 'h2'}],
+      'allows space': ['# hello world', {size: 1, text: 'hello world'}],
+      'allows newline': ['# hello world \n', {size: 1, text: 'hello world'}],
     }
   },
   hr: {
@@ -93,16 +187,21 @@ const tests = {
       'basic case': ['[name]: value', {type: 'def', name: 'name', value: 'value'}],
     },
   },
-  deflink: {
+  _blockquote: {
     success: {
-      'basic case': ['[name][value]', {type: 'deflink', text: 'name', def: 'value'}],
-    },
-  },
-  fences: {
-    success: {
-      'basic case': ['```\nthis is code\n```', {type: 'fences', language: '', value: 'this is code'}],
-      'language case': ['```js\nthis is code\n```', {type: 'fences', language: 'js', value: 'this is code'}],
-    },
+      'basic case': [
+        ['> hello'],
+        'hello',
+      ],
+      'multiline case': [
+        ['> hello', '> world'],
+        'hello\nworld',
+      ],
+      'blank quote line': [
+        ['> hello', '>', '> world'],
+        'hello\n\nworld',
+      ]
+    }
   },
 }
 
@@ -117,7 +216,7 @@ const assertions = {
   },
 }
 
-const runAllTests = () => {
+const runTests = (tests) => {
   Object.keys(tests).forEach(parserName => {
     const parser = md[parserName]
     Object.keys(tests[parserName]).forEach(assertion => {
@@ -132,7 +231,7 @@ const runAllTests = () => {
   })
 }
 
-const runOneTest = ([parserName, assertion, name]) => {
+const runOneTest = (tests, [parserName, assertion, name]) => {
   const parser = md[parserName]
   const assert = assertions[assertion]
   test(`${parserName}: ${name} [${assertion}]`, t => {
@@ -141,6 +240,11 @@ const runOneTest = ([parserName, assertion, name]) => {
   })
 }
 
-// runOneTest(['bold', 'success', 'italic inside'])
+const tests = {
+  ..._inline,
+  ..._multiline,
+}
 
-runAllTests()
+// runOneTest(tests, ['_listItem', 'success', 'basic multiline case'])
+
+runTests(tests)
