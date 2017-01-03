@@ -293,48 +293,211 @@ const inline = {
   inline: {
     success: {
       'bold inside italic': [
-        '***bold** italic*',
+        '*italic **bold** not bold*',
         [{
           type: 'italic',
           children: [{
+            type: 'text',
+            value: 'italic ',
+          }, {
             type: 'bold',
             children: [{
               type: 'text',
               value: 'bold',
-            }],
+            }]
           }, {
             type: 'text',
-            value: ' italic',
+            value: ' not bold',
           }]
-        }]
+        }],
       ],
       'italic inside bold': [
-        '***italic* bold**',
+        '**bold *italic* not italic**',
+        [{
+          type: 'bold',
+          children: [{
+            type: 'text',
+            value: 'bold ',
+          }, {
+            type: 'italic',
+            children: [{
+              type: 'text',
+              value: 'italic',
+            }]
+          }, {
+            type: 'text',
+            value: ' not italic',
+          }]
+        }],
+      ],
+      'bold and italic': [
+        '***bold and italic*** *italic*',
         [{
           type: 'bold',
           children: [{
             type: 'italic',
             children: [{
               type: 'text',
-              value: 'italic',
+              value: 'bold and italic',
             }],
-          }, {
+          }]
+        }, {
+          type: 'text',
+          value: ' ',
+        }, {
+          type: 'italic',
+          children: [{
             type: 'text',
-            value: ' bold',
+            value: 'italic',
+          }],
+        }]
+      ],
+      'italic outside link': [
+        '*[hello](world)*',
+        [{
+          type: 'italic',
+          children: [{
+            type: 'link',
+            url: 'world',
+            children: [{
+              type: 'text',
+              value: 'hello',
+            }],
+          }],
+        }]
+      ],
+      'italic inside link': [
+        '[*hello*](world)',
+        [{
+          type: 'link',
+          url: 'world',
+          children: [{
+            type: 'italic',
+            children: [{
+              type: 'text',
+              value: 'hello',
+            }],
+          }],
+        }]
+      ],
+      'image precedence': [
+        'this is ![an image](not a link)',
+        [{
+          type: 'text',
+          value: 'this is ',
+        }, {
+          type: 'image',
+          alt: 'an image',
+          url: 'not a link',
+        }],
+      ],
+      'code precedence': [
+        '`*this is code*` and *`this is italic code`*',
+        [{
+          type: 'code',
+          value: '*this is code*',
+        }, {
+          type: 'text',
+          value: ' and ',
+        }, {
+          type: 'italic',
+          children: [{
+            type: 'code',
+            value: 'this is italic code',
+          }],
+        }],
+      ],
+      'bold inside deflink': [
+        '[this is **bold**][hello]',
+        [{
+          type: 'deflink',
+          def: 'hello',
+          children: [{
+            type: 'text',
+            value: 'this is '
+          }, {
+            type: 'bold',
+            children: [{
+              type: 'text',
+              value: 'bold',
+            }]
           }]
         }]
       ],
-    }
-  }
+      'ridiculously nested': [
+        [
+          '~~strikethrough **bold *and italic [deflink][**somewhere**] ',
+          '[![](clickable image)](here*) [and `code` []()](there)* bold ',
+          'precedence**~~ works!',
+        ].join(''),
+        [{
+          type: 'strikethrough',
+          children: [{
+            type: 'text',
+            value: 'strikethrough ',
+          }, {
+            type: 'bold',
+            children: [{
+              type: 'text',
+              value: 'bold ',
+            }, {
+              type: 'italic',
+              children: [{
+                type: 'text',
+                value: 'and italic '
+              }, {
+                type: 'deflink',
+                def: '**somewhere**',
+                children: [{
+                  type: 'text',
+                  value: 'deflink',
+                }]
+              }, {
+                type: 'link',
+                url: 'here*',
+                children: [{
+                  type: 'image',
+                  alt: '',
+                  url: 'clickable image',
+                }]
+              }, {
+                type: 'text',
+                value: ' ',
+              }, {
+                type: 'link',
+                url: 'there',
+                children: [{
+                  type: 'text',
+                  value: 'and ',
+                }, {
+                  type: 'code',
+                  value: 'code',
+                }, {
+                  type: 'text',
+                  value: ' []()',
+                }]
+              }],
+            }, {
+              type: 'text',
+              value: 'bold precedence',
+            }]
+          }]
+        }, {
+          type: 'text',
+          value: ' works!',
+        }]
+      ],
+    },
+  },
 }
 
 // code,
-// bold,
-// italic,
-// strikethrough,
 // image,
 // link,
 // deflink,
+// bold,
+// italic,
+// strikethrough,
 // character,
 
 const assertions = {
@@ -378,5 +541,12 @@ const tests = {
   ...inline,
 }
 
-// runOneTest(tests, ['inline', 'success', 'bold inside italic'])
-runTests(tests)
+// runOneTest(tests, ['_italic', 'success', 'basic case'])
+// runOneTest(tests, ['_italic', 'success', 'match first starting star'])
+// runOneTest(tests, ['_italic', 'success', 'match last ending star'])
+// runOneTest(tests, ['_italic', 'success', 'triple star'])
+runOneTest(tests, ['_italic', 'success', 'quadruple star'])
+// runOneTest(tests, ['_italic', 'success', 'bold must have precedence'])
+// runOneTest(tests, ['_italic', 'success', 'match last ending star'])
+// runOneTest(tests, ['_italic', 'success', 'escaped stars'])
+// runTests(tests)

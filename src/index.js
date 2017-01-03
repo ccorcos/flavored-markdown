@@ -13,6 +13,12 @@ const charRunWrap = c =>
       p.either([
         p.string('\\' + c),
         p.notChar(c),
+        p.string(c + c),
+        // p.sequence(function*() {
+        //   const {value} = yield p.string(c + c)
+        //   yield p.peek(p.notChar('*'))
+        //   return value
+        // }),
       ])
     )
     const {value: right} = yield charRun(c)
@@ -297,12 +303,12 @@ const character = p.map(
 
 const precedence = [
   code,
-  bold,
-  italic,
-  strikethrough,
   image,
   link,
   deflink,
+  bold,
+  italic,
+  strikethrough,
   character,
 ]
 
@@ -325,7 +331,7 @@ const charsToText = p.zeroOrMore(
 )
 
 export const _inline = (after) => {
-  const parsers = precedence.slice(precedence.indexOf(after) + 1)
+  const parsers = precedence.filter(x => x !== after)
   return p.map(
     p.zeroOrMore(p.either(parsers)),
     tokens => p.parse(charsToText, tokens).value

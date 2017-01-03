@@ -2,4 +2,4 @@ install:
 	npm install
 
 test:
-	ava src/*.test.js
+	./node_modules/.bin/ava src/*.test.js
