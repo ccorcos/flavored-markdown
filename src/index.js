@@ -295,11 +295,6 @@ export const blockquote = p.map(
   })
 )
 
-const character = p.map(
-  p.item,
-  c => ({type: 'char', value: c})
-)
-
 const precedence = [
   code,
   image,
@@ -308,29 +303,82 @@ const precedence = [
   bold,
   italic,
   strikethrough,
-  character,
 ]
 
-const isCharToken = ({type}) => type === 'char'
 
-const charTokens = p.oneOrMore(p.itemIs(isCharToken))
 
-const charTokensToTextToken = chars => ({
-  type: 'text',
-  value: chars.map(c => c.value).join('')
-})
 
-const slurpCharTokens = p.map(charTokens, charTokensToTextToken)
 
-const charsToText = p.zeroOrMore(
-  p.either([
-    slurpCharTokens,
-    p.item,
-  ])
+
+
+
+
+
+
+
+
+
+// TODO:
+// we need to rewrite all of the inline parsers to take in a list of tokens
+// and reduce them. then we need to run a single pass for each type of inline
+// token.
+
+const onePass = parser => {
+
+}
+
+const example = [
+  {type: 'text', value: 'hello *'},
+  {type: 'bold'},
+  {type: 'text', value: ' yeah yeah*'},
+  {type: 'link'},
+]
+
+const bold = () => {
+  const c = '*'
+  return p.sequence(function*() {
+    const {value: left} = yield doubleCharRun(c)
+    const {value: inner} = yield p.oneOrMore(
+      p.either([
+        p.string('\\' + c),
+        p.notChar(c),
+        p.sequence(function*() {
+          const {value} = yield p.char(c)
+          yield p.peek(p.notChar(c))
+          return value
+        })
+      ])
+    )
+    const {value: right} = yield doubleCharRun(c)
+    return left + inner.join('') + right
+  })
+}
+
+
+
+export const bold = p.map(
+  _bold,
+  text => ({
+    type: 'bold',
+    children: p.parse(_inline(bold), text).value,
+  })
 )
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const _inline = (after) => {
-  const parsers = precedence.filter(x => x !== after)
+  const parsers = precedence.slice(precedence.indexOf(after) + 1)
   return p.map(
     p.zeroOrMore(p.either(parsers)),
     tokens => p.parse(charsToText, tokens).value
