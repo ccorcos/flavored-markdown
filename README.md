@@ -1,4 +1,5 @@
-- inline recursive parsing
+- inline parse with multiple passes
+
 - multiline recursive parsing
 
 - use lerna

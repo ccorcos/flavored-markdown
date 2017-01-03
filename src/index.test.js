@@ -11,7 +11,7 @@ const _inline = {
       'match last ending star': ['*yes**', 'yes*'],
       'triple star': ['***yes***', '**yes**'],
       'quadruple star': ['****yes****', '***yes***'],
-      'bold must have precedence': ['*yes**yes*', 'yes*'],
+      'skip bold tokens': ['*yes**yes*', 'yes**yes'],
       'match last ending star': ['*yes***yes*', 'yes**'],
       'escaped stars': ['*yes\\*yes*', 'yes\\*yes'],
     },
@@ -424,69 +424,95 @@ const inline = {
           }]
         }]
       ],
-      'ridiculously nested': [
-        [
-          '~~strikethrough **bold *and italic [deflink][**somewhere**] ',
-          '[![](clickable image)](here*) [and `code` []()](there)* bold ',
-          'precedence**~~ works!',
-        ].join(''),
+      'parse link before bold': [
+        '**not bold [inside link**]()',
         [{
-          type: 'strikethrough',
+          type: 'text',
+          value: '**not bold ',
+        }, {
+          type: 'link',
+          url: '',
           children: [{
             type: 'text',
-            value: 'strikethrough ',
-          }, {
-            type: 'bold',
-            children: [{
-              type: 'text',
-              value: 'bold ',
-            }, {
-              type: 'italic',
-              children: [{
-                type: 'text',
-                value: 'and italic '
-              }, {
-                type: 'deflink',
-                def: '**somewhere**',
-                children: [{
-                  type: 'text',
-                  value: 'deflink',
-                }]
-              }, {
-                type: 'link',
-                url: 'here*',
-                children: [{
-                  type: 'image',
-                  alt: '',
-                  url: 'clickable image',
-                }]
-              }, {
-                type: 'text',
-                value: ' ',
-              }, {
-                type: 'link',
-                url: 'there',
-                children: [{
-                  type: 'text',
-                  value: 'and ',
-                }, {
-                  type: 'code',
-                  value: 'code',
-                }, {
-                  type: 'text',
-                  value: ' []()',
-                }]
-              }],
-            }, {
-              type: 'text',
-              value: 'bold precedence',
-            }]
-          }]
-        }, {
-          type: 'text',
-          value: ' works!',
+            value: 'inside link**',
+          }],
         }]
       ],
+      // 'image inside link': [
+      //   '[![a](b)](c)',
+      //   [{
+      //     type: 'link',
+      //     url: 'c',
+      //     children: [{
+      //       type: 'image',
+      //       alt: 'a',
+      //       url: 'b',
+      //     }]
+      //   }],
+      // ],
+      // 'ridiculously nested': [
+      //   [
+      //     '~~strikethrough **bold *and italic [deflink][**somewhere**] ',
+      //     '[![](clickable image)](here*) [and `code` []()](there)* bold ',
+      //     'precedence**~~ works!',
+      //   ].join(''),
+      //   [{
+      //     type: 'strikethrough',
+      //     children: [{
+      //       type: 'text',
+      //       value: 'strikethrough ',
+      //     }, {
+      //       type: 'bold',
+      //       children: [{
+      //         type: 'text',
+      //         value: 'bold ',
+      //       }, {
+      //         type: 'italic',
+      //         children: [{
+      //           type: 'text',
+      //           value: 'and italic '
+      //         }, {
+      //           type: 'deflink',
+      //           def: '**somewhere**',
+      //           children: [{
+      //             type: 'text',
+      //             value: 'deflink',
+      //           }]
+      //         }, {
+      //           type: 'link',
+      //           url: 'here*',
+      //           children: [{
+      //             type: 'image',
+      //             alt: '',
+      //             url: 'clickable image',
+      //           }]
+      //         }, {
+      //           type: 'text',
+      //           value: ' ',
+      //         }, {
+      //           type: 'link',
+      //           url: 'there',
+      //           children: [{
+      //             type: 'text',
+      //             value: 'and ',
+      //           }, {
+      //             type: 'code',
+      //             value: 'code',
+      //           }, {
+      //             type: 'text',
+      //             value: ' []()',
+      //           }]
+      //         }],
+      //       }, {
+      //         type: 'text',
+      //         value: 'bold precedence',
+      //       }]
+      //     }]
+      //   }, {
+      //     type: 'text',
+      //     value: ' works!',
+      //   }]
+      // ],
     },
   },
 }
@@ -541,12 +567,4 @@ const tests = {
   ...inline,
 }
 
-// runOneTest(tests, ['_italic', 'success', 'basic case'])
-// runOneTest(tests, ['_italic', 'success', 'match first starting star'])
-// runOneTest(tests, ['_italic', 'success', 'match last ending star'])
-// runOneTest(tests, ['_italic', 'success', 'triple star'])
-runOneTest(tests, ['_italic', 'success', 'quadruple star'])
-// runOneTest(tests, ['_italic', 'success', 'bold must have precedence'])
-// runOneTest(tests, ['_italic', 'success', 'match last ending star'])
-// runOneTest(tests, ['_italic', 'success', 'escaped stars'])
-// runTests(tests)
+runTests(tests)

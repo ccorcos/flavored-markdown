@@ -13,12 +13,11 @@ const charRunWrap = c =>
       p.either([
         p.string('\\' + c),
         p.notChar(c),
-        p.string(c + c),
-        // p.sequence(function*() {
-        //   const {value} = yield p.string(c + c)
-        //   yield p.peek(p.notChar('*'))
-        //   return value
-        // }),
+        p.sequence(function*() {
+          const {value} = yield p.string(c + c)
+          yield p.peek(p.notChar('*'))
+          return value
+        }),
       ])
     )
     const {value: right} = yield charRun(c)
