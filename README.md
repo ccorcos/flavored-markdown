@@ -1,19 +1,27 @@
-- formalize the inline lexer patterns
-- paragraph, nested list indentation
+- inline recursive parsing
+- multiline recursive parsing
 
+- use lerna
+- live demo app with next.js (create-react-app as well?)
 
-- pcombs format error
+- react render
+- string renderer
+- code renderer
 
-- test peek inside an either
-- get bold working
+- cli tool
+- webpack loader
 
-- pcombs performance
+- gfm table
+- custom react components and plugin system
 
-- markdown parser
+- pcombs better error formatting
+  - line and column number, color, display stream location
 
+- pcombs performance benchmarking
+  - look at marked
 
-- edge cases / not implemented
+- markdown features not implemented
   - underscore for emphasis
   - underlined headings
   - headings with trailing #
-  - indented code block
+  - indented code blocks
