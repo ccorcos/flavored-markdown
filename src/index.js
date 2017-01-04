@@ -424,3 +424,126 @@ export const inline = _inline()
 //
 //
 //
+
+
+// approach 1: unfold tokens
+// const italic = p.generate(function*() {
+//   const {value: before} = yield p.zeroOrMore(notTextToken)
+//   const {value: tokens} = yield p.chain(textToken, p.generate(function*() {
+//     const {value: text} = yield zeroOrMore(p.notChar('*'))
+//     const start = yield p.char('`')
+//     if (start.fail) {
+//       return [{value: {type: 'text', value: text}}]
+//     }
+//     const {value: inside} = yield zeroOrMore(p.notChar('*'))
+//     const end = yield p.char('`')
+//     if (end.fail) {
+//       return [
+//         {type: 'text', value: text},
+//         {type: 'italic', incomplete: true, children: [
+//           {type: 'text', value: inside},
+//         ]}
+//       ]
+//     }
+//     const {value: rest} = yield zeroOrMore(p.item)
+//     return [
+//       {type: 'text', value: text},
+//       {type: 'italic', children: [
+//         {type: 'text', value: inside},
+//       ]},
+//       {type: 'text', value: rest},
+//     ]
+//   }))
+//   if (tokens[tokens.length - 1].incomplete) {
+//     const {value: moreChildren} = yield p.zeroOrMore(notTextToken)
+//     yield p.chain(textToken, p.generate(function*() {
+//       const {value: inside} = yield zeroOrMore(p.notChar('*'))
+//       const end = yield p.char('*')
+//       if (end.fail) {
+//         // of vey
+//       }
+//       // get everything after
+//       // push children...
+//     }))
+//   } else {
+//     return {stream: barf, value: tokens}
+//   }
+// })
+
+
+
+
+
+
+
+// TODO
+
+// Start over fresh. Use FlowType!
+
+// better function names:
+// item => any
+// item('x')
+
+// different stream types:
+// string stream and array stream should have their own concat methods
+// so we dont have to keep mapping over zeroOrMore
+
+// more functions:
+// chars
+// items
+// nOrMore
+
+const token = p.either([
+  p.chars('*'),
+  p.chars('#'),
+  p.string('```'),
+  p.string('---')
+  p.string('~~')
+  p.string('- '),
+  p.items([p.digit, p.char(' ')]),
+  p.nOrMore(2, p.char(' ')),
+  p.char('!'),
+  p.char('['),
+  p.char(']'),
+  p.char('('),
+  p.char(')'),
+  p.char('`'),
+  p.char('\n'),
+])
+
+const tokenize = s => {
+  const tokens = []
+  let stream = s
+  let acc = []
+  while (stream.length !== 0) {
+    const result = token(stream)
+    if (result.fail) {
+      acc.push(stream.head())
+      stream = stream.move(1)
+    } else {
+      if (acc.length > 0) {
+        tokens.push(acc.join(''))
+        acc = []
+      }
+      tokens.push(result.value)
+      stream = result.stream
+    }
+  }
+  if (acc.length > 0) {
+    tokens.push(acc.join(''))
+  }
+  return tokens
+}
+
+const code = p.sequence(function*() {
+  yield p.char('`'),
+  const {value} = yield p.zeroOrMore(p.notChar('`'))
+  yield p.char('`')
+  return {
+    type: 'code',
+    value: value.join(''),
+  }
+})
+
+const onePass = parser =>
+  p.zeroOrMore(p.either([parser, p.item]))
