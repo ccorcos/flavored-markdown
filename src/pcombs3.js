@@ -6,7 +6,9 @@ export class Stream {
   constructor(iterable, cursor, length) {
     this.iterable = iterable
     this.cursor = cursor || 0
-    this.length = length || iterable.length - cursor
+    this.length = length === undefined
+                ? iterable.length - this.cursor
+                : length
   }
   // Get the first value from the iterable.
   head() {
@@ -25,13 +27,16 @@ export class Stream {
   }
   // Same interface as Array.slice but returns a new Stream
   slice(start, stop) {
+    if (stop < start) {
+      throw new Error('stop < start')
+    }
     if (stop && stop > this.length) {
       throw new TypeError('index out of range')
     }
     return new Stream(
       this.iterable,
       this.cursor + start,
-      this.cursor + (stop || this.length)
+      (stop || this.length) - start
     )
   }
 }
@@ -133,7 +138,7 @@ export const any = new Parser(stream =>
 
 export const end = new Parser(stream =>
   stream.length === 0
-    ? new Success(null, stream),
+    ? new Success(null, stream)
     : new Failure(`end: expected end but found ${stream.head()}`, stream))
 
 export const where = predicate =>
@@ -146,7 +151,7 @@ export const where = predicate =>
         return new Failure(`where: predicate did not match ${value}`, stream)
       }
     } else {
-      return new Failure('where: unexpected end', stream))
+      return new Failure('where: unexpected end', stream)
     }
   })
 
@@ -158,8 +163,14 @@ export const sequence = list =>
   list.slice(1).reduce(
     (acc, parser) =>
       acc.chain(values =>
-        parser.map(value => values.concat([value]))),
-    list[0].map(value => [value]))
+        parser.map(value =>
+          value === null
+            ? values
+            : values.concat([value]))),
+    list[0].map(value =>
+      value === null
+        ? []
+        : [value]))
   .expected('sequence: failed')
 
 export const either = list =>
@@ -191,7 +202,7 @@ export const nOrMore = (n, parser) =>
     zeroOrMore(parser).map(more => values.concat(more)))
 
 export const between = (l, p, r) =>
-  sequence([l, zeroOrMore(p), r]).map(v => v[1])
+  sequence([l, p, r]).map(v => v[1])
 
 export const sepBy = (sep, parser) =>
   parser.chain(value =>
@@ -202,9 +213,11 @@ export const sepBy = (sep, parser) =>
         : always([value])))
 
 export const maybe = parser =>
-  parser.bichain(
-    v => always(v),
-    v => always(null))
+  new Parser(stream =>
+    parser.run(stream)
+    .fold(
+      (v, s) => new Success(v, s),
+      (v) => new Success(null, stream)))
 
 export const peek = parser =>
   new Parser(stream =>
