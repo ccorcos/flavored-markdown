@@ -86,8 +86,12 @@ export class Parser {
   constructor(parse) {
     this.parse = parse
   }
-  run(stream) {
-    return this.parse(stream)
+  run(iterable) {
+    if (iterable instanceof Stream) {
+      return this.parse(iterable)
+    } else {
+      return this.parse(new Stream(iterable))
+    }
   }
   map(f) {
     return new Parser(stream =>

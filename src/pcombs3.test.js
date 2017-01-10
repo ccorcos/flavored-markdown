@@ -69,95 +69,148 @@ test('never', t => {
   )
 })
 
-// test('any', t => {
-//   p.any
-//   .run('xys')
-//   .fold(
-//     v => t.is('x', v),
-//     v => t.fail()
-//   )
-// })
+test('any', t => {
+  p.any
+  .run('xys')
+  .fold(
+    v => t.is('x', v),
+    v => t.fail()
+  )
+})
 
-// test('any fails at end', t => {
-//   p.any
-//   .run('')
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
-// test('end passes at end', t => {
-//   p.end
-//   .run('')
-//   .fold(
-//     v => t.pass(),
-//     v => t.fail()
-//   )
-// })
-//
-// test('end fails not at end', t => {
-//   p.end
-//   .run('x')
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
-// test('where passes', t => {
-//   p.where(x => x.type === 'yes')
-//   .run([{type: 'yes'}])
-//   .fold(
-//     v => t.is(v.type, 'yes'),
-//     v => t.fail()
-//   )
-// })
-//
-// test('where fails', t => {
-//   p.where(x => x.type === 'yes')
-//   .run([{type: 'no'}])
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
-// test('whereEq', t => {
-//   p.whereEq('x')
-//   .run('xyz')
-//   .fold(
-//     v => t.is(v, 'x'),
-//     v => t.fail()
-//   )
-// })
-//
-// test('sequence passes', t => {
-//   p.sequence([
-//     p.whereEq('x'),
-//     p.whereEq('y'),
-//     p.whereEq('z'),
-//   ])
-//   .run('xyz')
-//   .fold(
-//     v => t.deepEqual(v, ['x', 'y', 'z']),
-//     v => t.fail()
-//   )
-// })
-//
-// test('sequence fails', t => {
-//   p.sequence([
-//     p.whereEq('x'),
-//     p.whereEq('y'),
-//     p.whereEq('z'),
-//   ])
-//   .run('xy_')
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
+test('any fails at end', t => {
+  p.any
+  .run('')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('Parser map', t => {
+  p.any
+  .map(parseInt)
+  .run('2')
+  .fold(
+    v => t.is(v, 2),
+    v => t.fail()
+  )
+})
+
+test('Parser bimap', t => {
+  const parser = p.whereEq('x').bimap(
+    () => 'yes',
+    () => 'no'
+  )
+
+  parser
+  .run('x')
+  .fold(
+    v => t.is(v, 'yes'),
+    v => t.fail()
+  )
+
+  parser
+  .run('y')
+  .fold(
+    v => t.fail(),
+    v => t.is(v, 'no')
+  )
+})
+
+test('Parser chain', t => {
+  const parser =
+    p.whereEq('x')
+      .chain(x =>
+        p.whereEq('y')
+        .map(y => [x, y]))
+
+  parser
+  .run('xy')
+  .fold(
+    v => t.deepEqual(v, ['x', 'y']),
+    v => t.fail()
+  )
+
+  parser
+  .run('xx')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('end passes at end', t => {
+  p.end
+  .run('')
+  .fold(
+    v => t.pass(),
+    v => t.fail()
+  )
+})
+
+test('end fails not at end', t => {
+  p.end
+  .run('x')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('where passes', t => {
+  p.where(x => x.type === 'yes')
+  .run([{type: 'yes'}])
+  .fold(
+    v => t.is(v.type, 'yes'),
+    v => t.fail()
+  )
+})
+
+test('where fails', t => {
+  p.where(x => x.type === 'yes')
+  .run([{type: 'no'}])
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('whereEq', t => {
+  p.whereEq('x')
+  .run('xyz')
+  .fold(
+    v => t.is(v, 'x'),
+    v => t.fail()
+  )
+})
+
+test('sequence passes', t => {
+  p.sequence([
+    p.whereEq('x'),
+    p.whereEq('y'),
+    p.whereEq('z'),
+  ])
+  .run('xyz')
+  .fold(
+    v => t.deepEqual(v, ['x', 'y', 'z']),
+    v => t.fail()
+  )
+})
+
+test('sequence fails', t => {
+  p.sequence([
+    p.whereEq('x'),
+    p.whereEq('y'),
+    p.whereEq('z'),
+  ])
+  .run('xy_')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
 // test('either', t => {
 //   const parser = p.either([
 //     p.whereEq('x'),
@@ -393,30 +446,3 @@ test('never', t => {
 //   )
 // })
 //
-// test('Parser map', t => {
-//   p.any
-//   .map(parseInt)
-//   .run('2')
-//   .fold(
-//     v => t.is(v, 2),
-//     v => t.fail()
-//   )
-// })
-//
-// test('Parser bimap', t => {
-//   const parser = p.any.bimap(parseInt, 'NaN')
-//
-//   parser
-//   .run('2')
-//   .fold(
-//     v => t.is(v, 2),
-//     v => t.fail()
-//   )
-//
-//   parser
-//   .run('x')
-//   .fold(
-//     v => t.fail(),
-//     v => t.is('NaN', v)
-//   )
-// })
