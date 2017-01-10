@@ -113,8 +113,8 @@ export class Parser {
   bichain(s, f) {
     return new Parser(stream =>
       this.parse(stream).fold(
-        (v, s) => s(v).run(s),
-        (v, s) => f(v).run(s)
+        (v, st) => s(v).run(st),
+        (v, st) => f(v).run(st)
       ))
   }
   static of(value) {
@@ -178,18 +178,23 @@ export const sequence = list =>
   .expected('sequence: failed')
 
 export const either = list =>
-  list.slice(1).reduce(
-    (acc, parser) =>
-      acc.bichain(
-        v => always(v),
-        v => parser),
-    list[0])
-  .expected('either: failed')
+  new Parser(stream => {
+    for (let i = 0; i < list.length; i++) {
+      const parser = list[i]
+      const result = parser.run(stream)
+      if (result instanceof Success) {
+        return result
+      }
+    }
+    return new Failure('either: failed', stream)
+  })
 
 export const not = parser =>
-  parser.fold(
-    (value, stream) => new Failure('not: failed', stream),
-    (value, stream) => new Success(stream.head(), stream.move(1)))
+  new Parser(stream =>
+    parser.run(stream)
+    .fold(
+      (value, s) => new Failure('not: failed', stream),
+      (value, s) => new Success(s.head(), s.move(1))))
 
 export const zeroOrMore = parser =>
   parser.bichain(
@@ -235,5 +240,5 @@ export const chars = c =>
   .map(cs => cs.join(''))
 
 export const string = (str) =>
-  sequence(str.split('').map(eq))
+  sequence(str.split('').map(whereEq))
   .map(x => x.join(''))

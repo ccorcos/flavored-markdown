@@ -140,6 +140,29 @@ test('Parser chain', t => {
   )
 })
 
+test('Parser bichain', t => {
+  const parser =
+    p.whereEq('x')
+    .bichain(
+      v => p.always(v),
+      v => p.always('y')
+    )
+
+  parser
+  .run('x')
+  .fold(
+    v => t.is(v, 'x'),
+    v => t.fail()
+  )
+
+  parser
+  .run('z')
+  .fold(
+    v => t.is(v, 'y'),
+    v => t.fail()
+  )
+})
+
 test('end passes at end', t => {
   p.end
   .run('')
@@ -211,238 +234,290 @@ test('sequence fails', t => {
   )
 })
 
-// test('either', t => {
-//   const parser = p.either([
-//     p.whereEq('x'),
-//     p.whereEq('y'),
-//   ])
-//
-//   parser.run('x')
-//   .fold(
-//     v => t.is(v, 'x'),
-//     v => t.fail()
-//   )
-//
-//   parser.run('y')
-//   .fold(
-//     v => t.is(v, 'y'),
-//     v => t.fail()
-//   )
-//
-//   parser.run('z')
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
-// test('either backtracks', t => {
-//   const parser = p.either([
-//     p.sequence([
-//       p.whereEq('x'),
-//       p.whereEq('y'),
-//     ]),
-//     p.whereEq('y'),
-//   ])
-//
-//   parser.run('xy')
-//   .fold(
-//     v => t.deepEqual(v, ['x', 'y']),
-//     v => t.fail()
-//   )
-//
-//   parser.run('y')
-//   .fold(
-//     v => t.is(v, 'y'),
-//     v => t.fail()
-//   )
-// })
-//
-// test('not', t => {
-//   p.not(p.whereEq('x'))
-//   .run('y')
-//   .fold(
-//     v => t.is(v, 'y'),
-//     v => t.fail()
-//   )
-//
-//   p.not(p.whereEq('x'))
-//   .run('x')
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
-// test('zeroOrMore', t => {
-//   p.zeroOrMore(p.whereEq('x'))
-//   .run('xxxy')
-//   .fold(
-//     v => t.deepEqual(v, ['x', 'x', 'x']),
-//     v => t.fail()
-//   )
-//
-//   p.zeroOrMore(p.whereEq('x'))
-//   .run('yyyy')
-//   .fold(
-//     v => t.deepEqual(v, []),
-//     v => t.fail()
-//   )
-// })
-//
-// test('oneOrMore', t => {
-//   p.oneOrMore(p.whereEq('x'))
-//   .run('xxxy')
-//   .fold(
-//     v => t.deepEqual(v, ['x', 'x', 'x']),
-//     v => t.fail()
-//   )
-//
-//   p.oneOrMore(p.whereEq('x'))
-//   .run('yyyy')
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
-// test('nOrMore', t => {
-//   p.nOrMore(2, p.whereEq('x'))
-//   .run('xxxy')
-//   .fold(
-//     v => t.deepEqual(v, ['x', 'x', 'x']),
-//     v => t.fail()
-//   )
-//
-//   p.nOrMore(2, p.whereEq('x'))
-//   .run('xyyy')
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
-// test('between', t => {
-//   p.between(
-//     p.whereEq('['),
-//     p.zeroOrMore(p.not(p.whereEq(']'))),
-//     p.whereEq(']')
-//   )
-//   .run('[abcd]')
-//   .fold(
-//     v => t.deepEqual(v, ['a', 'b', 'c', 'd']),
-//     v => t.fail()
-//   )
-// })
-//
-// test('sepBy', t => {
-//   const parser = p.sepBy(p.whereEq(','), p.whereEq('x'))
-//
-//   parser.run('x')
-//   .fold(
-//     v => t.deepEqual(v, ['x']),
-//     v => t.fail()
-//   )
-//
-//   parser.run('x,x,x')
-//   .fold(
-//     v => t.deepEqual(v, ['x', 'x', 'x']),
-//     v => t.fail()
-//   )
-// })
-//
-// test('maybe', t => {
-//   const parser = p.maybe(p.whereEq('x'))
-//
-//   parser.run('x')
-//   .fold(
-//     v => t.is(v, 'x'),
-//     v => t.fail()
-//   )
-//
-//   parser.run('y')
-//   .fold(
-//     v => t.is(v, null),
-//     v => t.fail()
-//   )
-// })
-//
-// test('maybe backtracks', t => {
-//   const parser = p.sequence([
-//     p.maybe(p.whereEq('x')),
-//     p.whereEq('y'),
-//   ])
-//
-//   parser.run('xy')
-//   .fold(
-//     v => t.deepEqual(v, ['x', 'y']),
-//     v => t.fail()
-//   )
-//
-//   parser.run('y')
-//   .fold(
-//     v => t.deepEqual(v, ['y']),
-//     v => t.fail()
-//   )
-// })
-//
-// test('peek', t => {
-//   const parser =
-//     p.whereEq('x')
-//     .chain(v =>
-//       p.peek(p.whereEq('y'))
-//       .map(() => v))
-//
-//   parser.run('xy')
-//   .fold(
-//     v => t.is(v, 'x'),
-//     v => t.fail()
-//   )
-//
-//   parser.run('xx')
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
-// test('peek backtracks', t => {
-//   const parser =
-//     p.whereEq('x')
-//     .chain(v =>
-//       p.peek(p.whereEq('y'))
-//       .map(() => v))
-//     .chain(v =>
-//       p.whereEq('y'))
-//
-//   parser.run('xy')
-//   .fold(
-//     v => t.is(v, 'y'),
-//     v => t.fail()
-//   )
-//
-//   parser.run('xx')
-//   .fold(
-//     v => t.fail(),
-//     v => t.pass()
-//   )
-// })
-//
-// test('chars', t => {
-//   p.chars('x')
-//   .run('xxxxy')
-//   .fold(
-//     v => t.is(v, 'xxxx'),
-//     v => t.fail()
-//   )
-// })
-//
-// test('string', t => {
-//   p.chars('xyz')
-//   .run('xyz')
-//   .fold(
-//     v => t.is(v, 'xyz'),
-//     v => t.fail()
-//   )
-// })
-//
+test('either', t => {
+  const parser = p.either([
+    p.whereEq('x'),
+    p.whereEq('y'),
+  ])
+
+  parser.run('x')
+  .fold(
+    v => t.is(v, 'x'),
+    v => t.fail()
+  )
+
+  parser.run('y')
+  .fold(
+    v => t.is(v, 'y'),
+    v => t.fail()
+  )
+
+  parser.run('z')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('either backtracks', t => {
+  const parser = p.either([
+    p.sequence([
+      p.whereEq('x'),
+      p.whereEq('y'),
+    ]),
+    p.whereEq('y'),
+  ])
+
+  parser.run('xy')
+  .fold(
+    v => t.deepEqual(v, ['x', 'y']),
+    v => t.fail()
+  )
+
+  parser.run('y')
+  .fold(
+    v => t.is(v, 'y'),
+    v => t.fail()
+  )
+})
+
+test('not', t => {
+  p.not(p.whereEq('x'))
+  .run('y')
+  .fold(
+    v => t.is(v, 'y'),
+    v => t.fail()
+  )
+
+  p.not(p.whereEq('x'))
+  .run('x')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('not consumes once', t => {
+  const parser = p.not(p.sequence([
+    p.whereEq('x'),
+    p.whereEq('x'),
+  ]))
+  .chain(v => p.whereEq('y').map(() => v))
+
+  parser
+  .run('ay')
+  .fold(
+    v => t.is(v, 'a'),
+    v => t.fail()
+  )
+
+  parser
+  .run('xxy')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('zeroOrMore', t => {
+  const parser = p.zeroOrMore(p.whereEq('x'))
+
+  parser.run('xxxy')
+  .fold(
+    v => t.deepEqual(v, ['x', 'x', 'x']),
+    v => t.fail()
+  )
+
+  p.zeroOrMore(p.whereEq('x'))
+  .run('yyyy')
+  .fold(
+    v => t.deepEqual(v, []),
+    v => t.fail()
+  )
+})
+
+test('zeroOrMore consumes the right amount', t => {
+  const parser =
+    p.zeroOrMore(p.whereEq('x'))
+    .chain(() => p.whereEq('y'))
+
+  parser.run('xxxy')
+  .fold(
+    v => t.is(v, 'y'),
+    v => t.fail()
+  )
+
+  parser.run('y')
+  .fold(
+    v => t.is(v, 'y'),
+    v => t.fail()
+  )
+
+  parser.run('xy')
+  .fold(
+    v => t.is(v, 'y'),
+    v => t.fail()
+  )
+
+  parser.run('z')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('oneOrMore', t => {
+  p.oneOrMore(p.whereEq('x'))
+  .run('xxxy')
+  .fold(
+    v => t.deepEqual(v, ['x', 'x', 'x']),
+    v => t.fail()
+  )
+
+  p.oneOrMore(p.whereEq('x'))
+  .run('yyyy')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('nOrMore', t => {
+  p.nOrMore(2, p.whereEq('x'))
+  .run('xxxy')
+  .fold(
+    v => t.deepEqual(v, ['x', 'x', 'x']),
+    v => t.fail()
+  )
+
+  p.nOrMore(2, p.whereEq('x'))
+  .run('xyyy')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('between', t => {
+  p.between(
+    p.whereEq('['),
+    p.zeroOrMore(p.not(p.whereEq(']'))),
+    p.whereEq(']')
+  )
+  .run('[abcd]')
+  .fold(
+    v => t.deepEqual(v, ['a', 'b', 'c', 'd']),
+    v => t.fail()
+  )
+})
+
+test('sepBy', t => {
+  const parser = p.sepBy(p.whereEq(','), p.whereEq('x'))
+
+  parser.run('x')
+  .fold(
+    v => t.deepEqual(v, ['x']),
+    v => t.fail()
+  )
+
+  parser.run('x,x,x')
+  .fold(
+    v => t.deepEqual(v, ['x', 'x', 'x']),
+    v => t.fail()
+  )
+})
+
+test('maybe', t => {
+  const parser = p.maybe(p.whereEq('x'))
+
+  parser.run('x')
+  .fold(
+    v => t.is(v, 'x'),
+    v => t.fail()
+  )
+
+  parser.run('y')
+  .fold(
+    v => t.is(v, null),
+    v => t.fail()
+  )
+})
+
+test('maybe backtracks', t => {
+  const parser = p.sequence([
+    p.maybe(p.whereEq('x')),
+    p.whereEq('y'),
+  ])
+
+  parser.run('xy')
+  .fold(
+    v => t.deepEqual(v, ['x', 'y']),
+    v => t.fail()
+  )
+
+  parser.run('y')
+  .fold(
+    v => t.deepEqual(v, ['y']),
+    v => t.fail()
+  )
+})
+
+test('peek', t => {
+  const parser =
+    p.whereEq('x')
+    .chain(v =>
+      p.peek(p.whereEq('y'))
+      .map(() => v))
+
+  parser.run('xy')
+  .fold(
+    v => t.is(v, 'x'),
+    v => t.fail()
+  )
+
+  parser.run('xx')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('peek backtracks', t => {
+  const parser =
+    p.whereEq('x')
+    .chain(v =>
+      p.peek(p.whereEq('y'))
+      .map(() => v))
+    .chain(v =>
+      p.whereEq('y'))
+
+  parser.run('xy')
+  .fold(
+    v => t.is(v, 'y'),
+    v => t.fail()
+  )
+
+  parser.run('xx')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('chars', t => {
+  p.chars('x')
+  .run('xxxxy')
+  .fold(
+    v => t.is(v, 'xxxx'),
+    v => t.fail()
+  )
+})
+
+test('string', t => {
+  p.string('xyz')
+  .run('xyz')
+  .fold(
+    v => t.is(v, 'xyz'),
+    v => t.fail()
+  )
+})
