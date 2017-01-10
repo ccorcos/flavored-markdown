@@ -1,10 +1,8 @@
-
 // A Stream is an abstraction over strings and arrays so that we don't have to
-// keep chopping them up everywhere eating up CPU.
-class Stream {
-  // An iterable is either a string or and array. The cursor is an index
-  // that marks the beginning of the stream and the length is the amount left
-  // in the Stream.
+// keep chopping them up everywhere eating up CPU. An iterable is either a
+// string or an array. The cursor is an index that marks the beginning of the
+// stream and the length is the amount left in the Stream.
+export class Stream {
   constructor(iterable, cursor, length) {
     this.iterable = iterable
     this.cursor = cursor || 0
@@ -25,7 +23,7 @@ class Stream {
       this.length - distance
     )
   }
-  // Slice the stream returning a new stream. Same interface as Array.slice
+  // Same interface as Array.slice but returns a new Stream
   slice(start, stop) {
     if (stop && stop > this.length) {
       throw new TypeError('index out of range')
@@ -38,15 +36,21 @@ class Stream {
   }
 }
 
-
-
-class Success {
+// The Result of a parser should either be Success of Failure which represents
+// a disjoint type just like an Either.
+export class Result {
   constructor(value, stream) {
     this.value = value
     this.stream = stream
   }
+}
+
+export class Success extends Result {
   map(fn) {
     return new Success(fn(this.value), this.stream)
+  }
+  bimap(s, f) {
+    return new Success(s(this.value), this.stream)
   }
   chain(fn) {
     return fn(this.value, this.stream)
@@ -54,18 +58,14 @@ class Success {
   fold(s, f) {
     return s(this.value, this.stream)
   }
-  bichain(s, f) {
-    return this.chain(s)
-  }
 }
 
-class Failure {
-  constructor(value, stream) {
-    this.value = value
-    this.stream = stream
-  }
+export class Failure extends Result {
   map(fn) {
     return this
+  }
+  bimap(s, f) {
+    return new Failure(f(this.value), this.stream)
   }
   chain(fn) {
     return this
@@ -73,12 +73,11 @@ class Failure {
   fold(s, f) {
     return f(this.value, this.stream)
   }
-  bichain(s, f) {
-    return f(this.value, this.stream)
-  }
 }
 
-class Parser {
+// A Parser contains a function that parses a stream but provides functions for
+// mapping and chaining over the Result.
+export class Parser {
   constructor(parse) {
     this.parse = parse
   }
@@ -89,103 +88,135 @@ class Parser {
     return new Parser(stream =>
       this.parse(stream).map(f))
   }
+  bimap(s, f) {
+    return new Parser(stream =>
+      this.parse(stream).bimap(s, f))
+  }
+  chain(f) {
+    return new Parser(stream =>
+      this.parse(stream)
+      .chain((v, s) => f(v).run(s)))
+  }
   fold(s, f) {
     return new Parser(stream =>
       this.parse(stream).fold(s, f))
   }
-  chain(f) {
-    return new Parser(stream =>
-      this.parse(stream).chain((value, stream2) => f(value).run(stream2)))
-  }
   bichain(s, f) {
     return new Parser(stream =>
-      this.parse(stream).bichain(
-        (value, stream2) => s(value).run(stream2),
-        (value, stream2) => f(value).run(stream2)
+      this.parse(stream).fold(
+        (v, s) => s(v).run(s),
+        (v, s) => f(v).run(s)
       ))
   }
-  result(v) {
-    return this.map(() => v)
+  static of(value) {
+    return new Parser((stream) =>
+      new Success(value, stream))
+  }
+  expected(value) {
+    return this.bimap(
+      x => x,
+      inside => [value, inside]
+    )
   }
 }
 
-const always = (value) => (stream) => new Success(value, stream)
+export const always = Parser.of
 
-const never = (value) => (stream) => new Failure(value, stream)
+export const never = value =>
+  new Parser(stream =>
+    new Failure(value, stream))
 
-const any = (stream) => new Success(stream.head(), stream.move(1))
+export const any = new Parser(stream =>
+  stream.length > 0
+    ? new Success(stream.head(), stream.move(1))
+    : new Failure('any: unexpected end', stream))
 
-const where = (pred) => (stream) => pred(stream.head())
-                                  ? new Success(stream.head(), stream.move(1))
-                                  : new Failure('predicate failed', stream)
+export const end = new Parser(stream =>
+  stream.length === 0
+    ? new Success(null, stream),
+    : new Failure(`end: expected end but found ${stream.head()}`, stream))
 
-const eq = value => where(x => x === value)
-
-const sequence = (list) =>
-  list.slice(1).reduce(
-    (acc, p) => acc.chain((vs, s) => p.map(v => vs.concat(v)))
-    list[0].map(v => [v])
-  )
-
-const either = (list) => (stream) => {
-  for (let i = 0; i < list.length; i++) {
-    const result = list[i].run(stream)
-    if (result instanceof Success) {
-      return result
+export const where = predicate =>
+  new Parser(stream => {
+    if (stream.length > 0) {
+      const value = stream.head()
+      if (predicate(value)) {
+        return new Success(value, stream.move(1))
+      } else {
+        return new Failure(`where: predicate did not match ${value}`, stream)
+      }
+    } else {
+      return new Failure('where: unexpected end', stream))
     }
-  }
-  return new Failure('either did not match', stream)
-}
+  })
 
-const not = (parser) =>
+export const whereEq = value =>
+  where(x => x === value)
+  .expected(`whereEq: did not equal ${value}`)
+
+export const sequence = list =>
+  list.slice(1).reduce(
+    (acc, parser) =>
+      acc.chain(values =>
+        parser.map(value => values.concat([value]))),
+    list[0].map(value => [value]))
+  .expected('sequence: failed')
+
+export const either = list =>
+  list.slice(1).reduce(
+    (acc, parser) =>
+      acc.bichain(
+        v => always(v),
+        v => parser),
+    list[0])
+  .expected('either: failed')
+
+export const not = parser =>
   parser.fold(
-    (value, stream) => new Failure('not failed', stream),
-    (value, stream) => new Success(stream.head(), stream.move(1)),
-  )
+    (value, stream) => new Failure('not: failed', stream),
+    (value, stream) => new Success(stream.head(), stream.move(1)))
 
-const zeroOrMore = (parser) =>
+export const zeroOrMore = parser =>
   parser.bichain(
-    (value) => zeroOrMore(parser).map(rest => [value].concat(rest)),
-    (value) => always([])
-  )
+    value => zeroOrMore(parser).map(rest => [value].concat(rest)),
+    value => always([]))
 
-const oneOrMore = (parser) =>
+export const oneOrMore = parser =>
   parser.chain(result =>
     zeroOrMore(parser).map(rest => [result].concat(rest)))
 
-const chars = c =>
-  oneOrMore(eq(c))
+export const nOrMore = (n, parser) =>
+  sequence(Array(n).fill(parser))
+  .chain(values =>
+    zeroOrMore(parser).map(more => values.concat(more)))
+
+export const between = (l, p, r) =>
+  sequence([l, zeroOrMore(p), r]).map(v => v[1])
+
+export const sepBy = (sep, parser) =>
+  parser.chain(value =>
+    maybe(sep)
+    .chain(found =>
+      found
+        ? sepBy(sep, parser).map(rest => [value].concat(rest))
+        : always([value])))
+
+export const maybe = parser =>
+  parser.bichain(
+    v => always(v),
+    v => always(null))
+
+export const peek = parser =>
+  new Parser(stream =>
+    parser.run(stream)
+    .fold(
+      (v) => new Success(v, stream),
+      (v) => new Failure(v, stream)))
+
+export const chars = c =>
+  oneOrMore(whereEq(c))
   .map(cs => cs.join(''))
 
-const string = (str) =>
+export const string = (str) =>
   sequence(str.split('').map(eq))
   .map(x => x.join(''))
-
-const nOrMore = (n, parser) => (stream) =>
-  sequence(Array(n).fill(parser))
-  .chain((values) =>
-    zeroOrMore(parser).map(extra => values.concat(extra)))
-
-const between = (l, r) =>
-  sequence([l, zeroOrMore(not(r)), r])
-  .map(v => v[1])
-
-// HERE!
-const maybe = (parser) => (stream) =>
-  parser.parse(stream)
-  .bichain(
-    (value) => always(value),
-    (value, stream) => always(value)
-  )
-
-const sepBy = (sep, p) =>
-  p.chain()
-
-sepBy(sep, p)
-
-
-
-peek
-maybe
-eof
-notEof
