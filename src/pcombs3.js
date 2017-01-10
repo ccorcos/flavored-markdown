@@ -1,28 +1,44 @@
+
+// A Stream is an abstraction over strings and arrays so that we don't have to
+// keep chopping them up everywhere eating up CPU.
 class Stream {
-  constructor(iterable, cursor=0) {
+  // An iterable is either a string or and array. The cursor is an index
+  // that marks the beginning of the stream and the length is the amount left
+  // in the Stream.
+  constructor(iterable, cursor, length) {
     this.iterable = iterable
-    this.cursor = cursor
-    this.length = iterable.length - cursor
+    this.cursor = cursor || 0
+    this.length = length || iterable.length - cursor
   }
+  // Get the first value from the iterable.
   head() {
-    return this.iterable[0]
-  }
-  move(distance) {
-    return new Stream(this.iterable, this.cursor + distance)
-  }
-  slice(start, stop) {
-    if (this.cursor + (stop || 0) > this.iterable.length) {
+    if (this.length <= 0) {
       throw new TypeError('index out of range')
     }
-    const result = []
-    const begin = this.cursor + start
-    const end = stop ? this.cursor + stop : this.iterable.length
-    for (let i = begin; i < end; i++) {
-      result.push(this.iterable[i])
+    return this.iterable[this.cursor]
+  }
+  // Consume the stream by moving the cursor.
+  move(distance) {
+    return new Stream(
+      this.iterable,
+      this.cursor + distance,
+      this.length - distance
+    )
+  }
+  // Slice the stream returning a new stream. Same interface as Array.slice
+  slice(start, stop) {
+    if (stop && stop > this.length) {
+      throw new TypeError('index out of range')
     }
-    return result
+    return new Stream(
+      this.iterable,
+      this.cursor + start,
+      this.cursor + (stop || this.length)
+    )
   }
 }
+
+
 
 class Success {
   constructor(value, stream) {
