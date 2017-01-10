@@ -2,11 +2,12 @@
 // inspired by https://github.com/bodil/eulalie
 
 // Keep track of a string and a cursor to avoid having to chop up strings
-export const Stream = (iterable, cursor=0) => Object.freeze({
+export const Stream = (iterable, cursor=0) => ({
   iterable,
   cursor,
   length: iterable.length - cursor,
   head: () => iterable[cursor],
+  move: distance => Stream(iterable, cursor + distance),
   slice: (start, end) => {
     if (cursor + (end || 0) > iterable.length) {
       throw new TypeError('index out of range')
@@ -16,7 +17,6 @@ export const Stream = (iterable, cursor=0) => Object.freeze({
       end ? cursor + end : undefined
     )
   },
-  move: distance => Stream(iterable, cursor + distance),
 })
 
 // a parser gets a stream and must return one of two things:
@@ -30,9 +30,9 @@ export const unit = v => s => ({stream: s, value: v})
 export const fail = m => s => ({stream: s, fail: m || true})
 
 // consume one character
-export const item = s => s.length > 0
+export const any = s => s.length > 0
                   ? {stream: s.move(1), value: s.head()}
-                  : {stream: s, fail: 'item unexpected end of file'}
+                  : {stream: s, fail: 'any unexpected end of file'}
 
 // map over a parser with a better error message
 export const expected = (parser, message) => s => {
@@ -79,31 +79,31 @@ export const chain = (parser, fn) => s => {
 }
 
 // consume a character given it passes the predicate function
-export const itemIs = predicate => s => {
+export const is = predicate => s => {
   if (s.length > 0) {
     const c = s.head()
     return predicate(c)
          ? {stream: s.move(1), value: c}
-         : {stream: s, fail: `itemIs(predicate) does not match '${c}'`}
+         : {stream: s, fail: `is(predicate) does not match '${c}'`}
   } else {
-    return {stream: s, fail: `itemIs(predicate) unexpected end of file`}
+    return {stream: s, fail: `is(predicate) unexpected end of file`}
   }
 }
 
-// parse a single character
-export const char = c => expected(
-  itemIs(v => v === c),
-  `char('${c}') did not match`
+// parse a single item
+export const item = c => expected(
+  is(v => v === c),
+  `item('${c}') did not match`
 )
 
-export const notChar = c => expected(
-  itemIs(v => v !== c),
-  `notChar('${c}') not match`
+export const notItem = c => expected(
+  is(v => v !== c),
+  `notItem('${c}') not match`
 )
 
 // parse a digit
 export const digit = expected(
-  itemIs(c => /^\d/.test(c)),
+  is(c => /^\d/.test(c)),
   `digit did not match`
 )
 

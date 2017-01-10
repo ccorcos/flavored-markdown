@@ -2,7 +2,7 @@ import * as p from './pcombs'
 
 const charRun = c =>
   p.sequence(function*() {
-    const {value} = yield p.oneOrMore(p.char(c))
+    const {value} = yield p.oneOrMore(p.item(c))
     return value.slice(1).join('')
   })
 
@@ -12,10 +12,10 @@ const charRunWrap = c =>
     const {value: inner} = yield p.oneOrMore(
       p.either([
         p.string('\\' + c),
-        p.notChar(c),
+        p.notItem(c),
         p.sequence(function*() {
           const {value} = yield p.string(c + c)
-          yield p.peek(p.notChar('*'))
+          yield p.peek(p.notItem('*'))
           return value
         }),
       ])
@@ -36,7 +36,7 @@ export const italic = p.map(
 
 const doubleCharRun = c =>
   p.sequence(function*() {
-    yield p.char(c)
+    yield p.item(c)
     const {value} = yield charRun(c)
     return value
   })
@@ -47,10 +47,10 @@ const doubleCharRunWrap = c =>
     const {value: inner} = yield p.oneOrMore(
       p.either([
         p.string('\\' + c),
-        p.notChar(c),
+        p.notItem(c),
         p.sequence(function*() {
-          const {value} = yield p.char(c)
-          yield p.peek(p.notChar(c))
+          const {value} = yield p.item(c)
+          yield p.peek(p.notItem(c))
           return value
         })
       ])
@@ -81,14 +81,14 @@ export const strikethrough = p.map(
 
 const wrapLeftRight = (l, r) =>
   p.sequence(function*() {
-    yield p.char(l)
+    yield p.item(l)
     const {value: text} = yield p.zeroOrMore(
       p.either([
         p.string('\\' + r),
-        p.notChar(r),
+        p.notItem(r),
       ])
     )
-    yield p.char(r)
+    yield p.item(r)
     return text.join('')
   })
 
@@ -120,7 +120,7 @@ export const link = p.map(
 )
 
 export const image = p.sequence(function*() {
-  yield p.char('!')
+  yield p.item('!')
   const {value: {text, url}} = yield _link
   return {type: 'image', alt: text, url}
 })
@@ -154,9 +154,9 @@ const listStart = p.either([
 ])
 
 const listItemLine = p.sequence(function*() {
-  const {value: spaces} = yield p.zeroOrMore(p.char(' '))
+  const {value: spaces} = yield p.zeroOrMore(p.item(' '))
   const {value: ordered} = yield listStart
-  const {value: chars} = yield p.zeroOrMore(p.item)
+  const {value: chars} = yield p.zeroOrMore(p.any)
   return {
     indent: spaces.length,
     text: chars.join(''),
@@ -166,7 +166,7 @@ const listItemLine = p.sequence(function*() {
 
 const blank = p.map(
   p.sequence(function*() {
-    yield p.zeroOrMore(p.char(' '))
+    yield p.zeroOrMore(p.item(' '))
     yield p.eof
   }),
   () => ''
@@ -181,15 +181,15 @@ const indentedMoreThan = n =>
     blank,
     p.sequence(function*() {
       yield p.string(nChars(' ', n + indentSize))
-      const {value: text} = yield p.zeroOrMore(p.item)
+      const {value: text} = yield p.zeroOrMore(p.any)
       return text.join('').trim()
     })
   ])
 
 export const _listItem = p.sequence(function*() {
-  const {value: start} = yield p.chain(p.item, listItemLine)
+  const {value: start} = yield p.chain(p.any, listItemLine)
   const {value: rest} = yield p.zeroOrMore(
-    p.chain(p.item, indentedMoreThan(start.indent))
+    p.chain(p.any, indentedMoreThan(start.indent))
   )
   const lines = [start.text].concat(rest)
   return {
@@ -216,20 +216,20 @@ export const list = p.map(
 )
 
 export const fences = p.sequence(function*() {
-  const {value: lang} = yield p.chain(p.item, p.sequence(function*() {
+  const {value: lang} = yield p.chain(p.any, p.sequence(function*() {
     yield p.string('```')
-    const {value: lang} = yield p.zeroOrMore(p.item)
+    const {value: lang} = yield p.zeroOrMore(p.any)
     return lang.join('').trim()
   }))
   const {value: codeLines} = yield p.zeroOrMore(
-    p.chain(p.item, p.sequence(function*() {
+    p.chain(p.any, p.sequence(function*() {
       const {value: start} = yield p.notString('```')
-      const {value: rest} = yield p.zeroOrMore(p.item)
+      const {value: rest} = yield p.zeroOrMore(p.any)
       // console.log(rest)
       return start + rest.join('')
     }))
   )
-  yield p.chain(p.item, p.string('```'))
+  yield p.chain(p.any, p.string('```'))
   return {
     type: 'fences',
     language: lang,
@@ -238,8 +238,8 @@ export const fences = p.sequence(function*() {
 })
 
 export const _heading = p.sequence(function*() {
-  const {value: head} = yield p.oneOrMore(p.char('#'))
-  const {value: rest} = yield p.zeroOrMore(p.item)
+  const {value: head} = yield p.oneOrMore(p.item('#'))
+  const {value: rest} = yield p.zeroOrMore(p.any)
   const text = rest.join('').trim()
   return {size: head.length, text}
 })
@@ -262,7 +262,7 @@ export const hr = p.sequence(function*() {
 export const def = p.sequence(function*() {
   const {value: name} = yield wrapLeftRight('[', ']')
   yield p.string(':')
-  const {value: rest} = yield p.oneOrMore(p.item)
+  const {value: rest} = yield p.oneOrMore(p.any)
   return {
     type: 'def',
     name,
@@ -273,14 +273,14 @@ export const def = p.sequence(function*() {
 const prefixed = parser =>
   p.sequence(function*() {
     yield parser
-    const {value: text} = yield p.zeroOrMore(p.item)
+    const {value: text} = yield p.zeroOrMore(p.any)
     return text.join('').trim()
   })
 
 export const _blockquote = p.map(
   p.oneOrMore(
     p.chain(
-      p.item,
+      p.any,
       prefixed(p.string('>'))
     )
   ),
@@ -341,10 +341,10 @@ const bold = () => {
     const {value: inner} = yield p.oneOrMore(
       p.either([
         p.string('\\' + c),
-        p.notChar(c),
+        p.notItem(c),
         p.sequence(function*() {
-          const {value} = yield p.char(c)
-          yield p.peek(p.notChar(c))
+          const {value} = yield p.item(c)
+          yield p.peek(p.notItem(c))
           return value
         })
       ])
@@ -430,13 +430,13 @@ export const inline = _inline()
 // const italic = p.generate(function*() {
 //   const {value: before} = yield p.zeroOrMore(notTextToken)
 //   const {value: tokens} = yield p.chain(textToken, p.generate(function*() {
-//     const {value: text} = yield zeroOrMore(p.notChar('*'))
-//     const start = yield p.char('`')
+//     const {value: text} = yield zeroOrMore(p.notItem('*'))
+//     const start = yield p.item('`')
 //     if (start.fail) {
 //       return [{value: {type: 'text', value: text}}]
 //     }
-//     const {value: inside} = yield zeroOrMore(p.notChar('*'))
-//     const end = yield p.char('`')
+//     const {value: inside} = yield zeroOrMore(p.notItem('*'))
+//     const end = yield p.item('`')
 //     if (end.fail) {
 //       return [
 //         {type: 'text', value: text},
@@ -445,7 +445,7 @@ export const inline = _inline()
 //         ]}
 //       ]
 //     }
-//     const {value: rest} = yield zeroOrMore(p.item)
+//     const {value: rest} = yield zeroOrMore(p.any)
 //     return [
 //       {type: 'text', value: text},
 //       {type: 'italic', children: [
@@ -457,8 +457,8 @@ export const inline = _inline()
 //   if (tokens[tokens.length - 1].incomplete) {
 //     const {value: moreChildren} = yield p.zeroOrMore(notTextToken)
 //     yield p.chain(textToken, p.generate(function*() {
-//       const {value: inside} = yield zeroOrMore(p.notChar('*'))
-//       const end = yield p.char('*')
+//       const {value: inside} = yield zeroOrMore(p.notItem('*'))
+//       const end = yield p.item('*')
 //       if (end.fail) {
 //         // of vey
 //       }
@@ -480,10 +480,6 @@ export const inline = _inline()
 
 // Start over fresh. Use FlowType!
 
-// better function names:
-// item => any
-// item('x')
-
 // different stream types:
 // string stream and array stream should have their own concat methods
 // so we dont have to keep mapping over zeroOrMore
@@ -500,15 +496,15 @@ const token = p.either([
   p.string('---')
   p.string('~~')
   p.string('- '),
-  p.items([p.digit, p.char(' ')]),
-  p.nOrMore(2, p.char(' ')),
-  p.char('!'),
-  p.char('['),
-  p.char(']'),
-  p.char('('),
-  p.char(')'),
-  p.char('`'),
-  p.char('\n'),
+  p.any([p.digit, p.item(' ')]),
+  p.nOrMore(2, p.item(' ')),
+  p.item('!'),
+  p.item('['),
+  p.item(']'),
+  p.item('('),
+  p.item(')'),
+  p.item('`'),
+  p.item('\n'),
 ])
 
 const tokenize = s => {
@@ -536,9 +532,9 @@ const tokenize = s => {
 }
 
 const code = p.sequence(function*() {
-  yield p.char('`'),
-  const {value} = yield p.zeroOrMore(p.notChar('`'))
-  yield p.char('`')
+  yield p.item('`'),
+  const {value} = yield p.zeroOrMore(p.notItem('`'))
+  yield p.item('`')
   return {
     type: 'code',
     value: value.join(''),
@@ -546,4 +542,4 @@ const code = p.sequence(function*() {
 })
 
 const onePass = parser =>
-  p.zeroOrMore(p.either([parser, p.item]))
+  p.zeroOrMore(p.either([parser, p.any]))
