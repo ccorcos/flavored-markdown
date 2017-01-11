@@ -197,9 +197,11 @@ export const not = parser =>
       (value, s) => new Success(s.head(), s.move(1))))
 
 export const zeroOrMore = parser =>
-  parser.bichain(
-    value => zeroOrMore(parser).map(rest => [value].concat(rest)),
-    value => always([]))
+  new Parser(stream =>
+    parser.run(stream)
+    .fold(
+      (value, s) => zeroOrMore(parser).map(rest => [value].concat(rest)).run(s),
+      (value, s) => new Success([], stream)))
 
 export const oneOrMore = parser =>
   parser.chain(result =>

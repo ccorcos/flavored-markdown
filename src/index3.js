@@ -21,3 +21,11 @@ const token = p.either([
 
 export const tokenize = p.zeroOrMore(token)
 
+export const fences = p.either([
+  p.between(
+    p.where(({type}) => type === 'fence'),
+    p.zeroOrMore(p.not(p.where(({type}) => type === 'fence'))),
+    p.where(({type}) => type === 'fence')
+  ).map(children => ({type: 'fences', children})),
+  p.any,
+])

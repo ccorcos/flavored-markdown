@@ -208,6 +208,16 @@ test('whereEq', t => {
   )
 })
 
+test('chain always', t => {
+  p.whereEq('x')
+  .chain(p.always)
+  .run('xyz')
+  .fold(
+    v => t.is(v, 'x'),
+    v => t.fail()
+  )
+})
+
 test('sequence passes', t => {
   const parser = p.sequence([
     p.whereEq('x'),
@@ -404,7 +414,7 @@ test('oneOrMore sequence', t => {
   parser
   .run('abcabc')
   .fold(
-    () => t.pass(),
+    v => t.deepEqual(v, ['abc', 'abc']),
     () => t.fail()
   )
 
@@ -415,7 +425,6 @@ test('oneOrMore sequence', t => {
     () => t.pass()
   )
 
-  // TODO something here needs to backtrack
   parser
   .run('abca')
   .fold(

@@ -1,8 +1,14 @@
 import test from 'ava'
-import { tokenize } from './index3'
+import { tokenize, fences } from './index3'
 
 test('tmp', t => {
-  console.log(tokenize.run(`
+  console.log(
+    tokenize
+    // .chain(p.always)
+    // .chain(tokens =>
+    //   p.always(p.zeroOrMore(fences).run(tokens))
+    // )
+    .run(`
 # header
 
 *italics**bold***
@@ -11,5 +17,6 @@ test('tmp', t => {
 this is some code
 \`\`\`
 
-   - `))
+   - `)
+ )
 })
