@@ -1,12 +1,16 @@
 import test from 'ava'
-import { tokenize, fences } from './index3'
+import util from 'util'
+import * as p from './pcombs3'
+import { tokenize, text, fences, multiplePasses } from './index3'
 
 test('tmp', t => {
-  console.log(
-    tokenize
-    // .chain(p.always)
+  console.log(util.inspect(
+    multiplePasses([tokenize, text, fences])
+    // tokenize
     // .chain(tokens =>
-    //   p.always(p.zeroOrMore(fences).run(tokens))
+    //   p.zeroOrMore(p.either([fences, p.any]))
+    //   .run(tokens)
+    //   .fold(p.always, p.never)
     // )
     .run(`
 # header
@@ -17,6 +21,6 @@ test('tmp', t => {
 this is some code
 \`\`\`
 
-   - `)
- )
+   - `).value
+ , false, null))
 })
