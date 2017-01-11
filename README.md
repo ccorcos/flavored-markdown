@@ -1,5 +1,7 @@
 - inline parse with multiple passes
 
+https://vega.github.io/vega-lite/
+
 - multiline recursive parsing
 
 - use lerna
