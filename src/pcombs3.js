@@ -242,3 +242,6 @@ export const chars = c =>
 export const string = (str) =>
   sequence(str.split('').map(whereEq))
   .map(x => x.join(''))
+
+export const digit =
+  either([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => whereEq(d.toString())))

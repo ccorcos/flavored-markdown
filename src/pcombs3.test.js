@@ -209,12 +209,21 @@ test('whereEq', t => {
 })
 
 test('sequence passes', t => {
-  p.sequence([
+  const parser = p.sequence([
     p.whereEq('x'),
     p.whereEq('y'),
     p.whereEq('z'),
   ])
+
+  parser
   .run('xyz')
+  .fold(
+    v => t.deepEqual(v, ['x', 'y', 'z']),
+    v => t.fail()
+  )
+
+  parser
+  .run('xyzx')
   .fold(
     v => t.deepEqual(v, ['x', 'y', 'z']),
     v => t.fail()
@@ -382,6 +391,39 @@ test('oneOrMore', t => {
   )
 })
 
+test('oneOrMore sequence', t => {
+  const parser = p.oneOrMore(p.string('abc')).chain(v => p.end.map(() => v))
+
+  parser
+  .run('abc')
+  .fold(
+    () => t.pass(),
+    () => t.fail()
+  )
+
+  parser
+  .run('abcabc')
+  .fold(
+    () => t.pass(),
+    () => t.fail()
+  )
+
+  parser
+  .run('abcd')
+  .fold(
+    () => t.fail(),
+    () => t.pass()
+  )
+
+  // TODO something here needs to backtrack
+  parser
+  .run('abca')
+  .fold(
+    () => t.fail(),
+    () => t.pass()
+  )
+})
+
 test('nOrMore', t => {
   p.nOrMore(2, p.whereEq('x'))
   .run('xxxy')
@@ -519,5 +561,12 @@ test('string', t => {
   .fold(
     v => t.is(v, 'xyz'),
     v => t.fail()
+  )
+
+  p.string('xyz')
+  .run('xy_')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
   )
 })
