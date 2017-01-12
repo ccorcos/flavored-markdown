@@ -140,29 +140,6 @@ test('Parser chain', t => {
   )
 })
 
-test('Parser bichain', t => {
-  const parser =
-    p.whereEq('x')
-    .bichain(
-      v => p.always(v),
-      v => p.always('y')
-    )
-
-  parser
-  .run('x')
-  .fold(
-    v => t.is(v, 'x'),
-    v => t.fail()
-  )
-
-  parser
-  .run('z')
-  .fold(
-    v => t.is(v, 'y'),
-    v => t.fail()
-  )
-})
-
 test('end passes at end', t => {
   p.end
   .run('')

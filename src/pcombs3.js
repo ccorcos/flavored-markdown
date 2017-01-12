@@ -110,13 +110,6 @@ export class Parser {
     return new Parser(stream =>
       this.parse(stream).fold(s, f))
   }
-  bichain(s, f) {
-    return new Parser(stream =>
-      this.parse(stream).fold(
-        (v, st) => s(v).run(st),
-        (v, st) => f(v).run(st)
-      ))
-  }
   static of(value) {
     return new Parser((stream) =>
       new Success(value, stream))
