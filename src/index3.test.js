@@ -1,18 +1,9 @@
 import test from 'ava'
 import util from 'util'
 import * as p from './pcombs3'
-import { tokenize, text, fences, multiplePasses } from './index3'
+import * as t from './index3'
 
-test('tmp', t => {
-  console.log(util.inspect(
-    multiplePasses([tokenize, text, fences])
-    // tokenize
-    // .chain(tokens =>
-    //   p.zeroOrMore(p.either([fences, p.any]))
-    //   .run(tokens)
-    //   .fold(p.always, p.never)
-    // )
-    .run(`
+const md = `
 # header
 
 *italics**bold***
@@ -21,6 +12,27 @@ test('tmp', t => {
 this is some code
 \`\`\`
 
-   - `).value
+[![](image)](link)
+
+this is a [def][link]
+
+This is \`some code\` with \` lower [precedence\`](than a link).
+
+- `
+
+test('tmp', t => {
+  console.log(t)
+  console.log(util.inspect(
+    t.multiplePasses([
+      t.tokenize,
+      t.text,
+      t.fences,
+      t.image,
+      t.link,
+      t.deflink,
+      t.code,
+      t.strikethrough,
+    ])
+    .run(md).value
  , false, null))
 })

@@ -1,4 +1,3 @@
-
 # Heading1
 
 ## Heading2
@@ -7,6 +6,7 @@ Here is *italics* and **bold** and `inline code`.
 Here is a newline in the same paragraph.
 
 Here is a new paragraph. Some **bold *itialic* text**.
+
 
 ```
 here is code

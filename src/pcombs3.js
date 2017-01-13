@@ -156,6 +156,7 @@ export const whereEq = value =>
   where(x => x === value)
   .expected(`whereEq: did not equal ${value}`)
 
+// TODO: should sequence ignore nulls?
 export const sequence = list =>
   list.slice(1).reduce(
     (acc, parser) =>
@@ -169,6 +170,17 @@ export const sequence = list =>
         ? []
         : [value]))
   .expected('sequence: failed')
+
+// TODO: generate
+// p.generate(function*() {
+//   yield tokenType('[')
+//   const children = yield p.zeroOrMore(p.not(tokenType(']')))
+//   yield tokenType(']')
+//   yield tokenType('(')
+//   const url = yield p.zeroOrMore(p.not(tokenType(')')))
+//   yield tokenType(')')
+//   return {children url}
+// })
 
 export const either = list =>
   new Parser(stream => {

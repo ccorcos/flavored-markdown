@@ -8,6 +8,7 @@ export const multiplePasses = parsers =>
     acc.chain(inside => parser.run(inside).fold(p.always, p.never)))
 
 export const tokenize = p.either([
+  p.whereEq('\\').chain(() => p.any).map(raw => ({type: 'char', raw})),
   p.chars('*').map(raw => ({type: 'stars', length: raw.length, raw})),
   p.chars('#').map(raw => ({type: 'heading', length: raw.length, raw})),
   p.string('```').map(raw => ({type: 'fence', raw})),
@@ -26,34 +27,82 @@ export const tokenize = p.either([
   p.any.map(raw => ({type: 'char', raw})),
 ])
 
-const type = v => p.where(t => t.type === v)
+const tokenType = v => p.where(t => t.type === v)
+const untokenize = list => list.map(c => c.raw).join('')
 
 export const text =
-  p.oneOrMore(p.where(t => t.type === 'char'))
-  .map(list => ({
+  p.oneOrMore(tokenType('char'))
+  .map(chars => ({
     type: 'text',
-    raw: list.map(c => c.raw).join(''),
+    raw: untokenize(chars),
   }))
+
+const wrapLR = (l, r) => p.between(l, p.zeroOrMore(p.not(r)), r)
+
+const wrap = (t) => wrapLR(t, t)
+
+const tokenWrapLR = (l, r) => wrapLR(tokenType(l), tokenType(r))
+
+const tokenWrap = t => tokenWrapLR(t, t)
+
+// TODO: recursively parse inline
+const inline = x => x
 
 export const fences =
-  p.between(
-    p.where(({type}) => type === 'fence'),
-    p.zeroOrMore(p.not(p.where(({type}) => type === 'fence'))),
-    p.where(({type}) => type === 'fence')
-  ).map(children => ({
+  tokenWrap('fence')
+  .map(children => ({
     type: 'fences',
-    raw: children.map(x => x.raw).join(''),
+    raw: untokenize(children),
   }))
 
+export const code =
+  tokenWrap('`')
+  .map(children => ({
+    type: 'code',
+    raw: untokenize(children),
+  }))
+
+export const link =
+  p.sequence([
+    tokenWrapLR('[', ']').map(inline),
+    tokenWrapLR('(', ')'),
+  ])
+  .map(([children, url]) => ({
+    type: 'link',
+    children,
+    url,
+  }))
+
+export const image =
+  tokenType('!')
+  .chain(() => link)
+  .map(({url, children}) => ({
+    type: 'image',
+    alt: untokenize(children),
+    url,
+  }))
+
+export const deflink =
+  p.sequence([
+    tokenWrapLR('[', ']').map(inline),
+    tokenWrapLR('[', ']'),
+  ])
+  .map(([children, def]) => ({
+    type: 'deflink',
+    children,
+    def,
+  }))
+
+export const strikethrough =
+  tokenWrap('del')
+  .map(children => ({
+    type: 'fences',
+    raw: inline(children),
+  }))
 
 
 // export const italic = p.map(
 // export const bold = p.map(
-// export const strikethrough = p.map(
-// export const code = p.map(
-// export const link = p.map(
-// export const image = p.sequence(function*() {
-// export const deflink = p.map(
 
 // export const list = p.map(
 // export const fences = p.sequence(function*() {
