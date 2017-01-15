@@ -69,8 +69,8 @@ export const link =
   ])
   .map(([children, url]) => ({
     type: 'link',
+    url: untokenize(url),
     children,
-    url,
   }))
 
 export const image =
@@ -90,7 +90,7 @@ export const deflink =
   .map(([children, def]) => ({
     type: 'deflink',
     children,
-    def,
+    def: untokenize(def),
   }))
 
 export const strikethrough =

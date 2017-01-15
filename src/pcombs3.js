@@ -134,7 +134,7 @@ export const any = new Parser(stream =>
     : new Failure('any: unexpected end', stream))
 
 export const end = new Parser(stream =>
-  stream.length === 0
+  stream.length <= 0
     ? new Success(null, stream)
     : new Failure(`end: expected end but found ${stream.head()}`, stream))
 
@@ -199,7 +199,10 @@ export const not = parser =>
     parser.run(stream)
     .fold(
       (value, s) => new Failure('not: failed', stream),
-      (value, s) => new Success(s.head(), s.move(1))))
+      (value, s) =>
+        s.length > 0
+        ? new Success(s.head(), s.move(1))
+        : new Failure('not: unexpected end', stream)))
 
 export const zeroOrMore = parser =>
   new Parser(stream =>

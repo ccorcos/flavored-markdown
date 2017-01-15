@@ -1,9 +1,9 @@
 import test from 'ava'
 import util from 'util'
 import * as p from './pcombs3'
-import * as t from './index3'
+import * as md from './index3'
 
-const md = `
+const text = `
 # header
 
 *italics**bold***
@@ -21,18 +21,17 @@ This is \`some code\` with \` lower [precedence\`](than a link).
 - `
 
 test('tmp', t => {
-  console.log(t)
   console.log(util.inspect(
-    t.multiplePasses([
-      t.tokenize,
-      t.text,
-      t.fences,
-      t.image,
-      t.link,
-      t.deflink,
-      t.code,
-      t.strikethrough,
+    md.multiplePasses([
+      md.tokenize,
+      md.text,
+      md.fences,
+      md.image,
+      md.link,
+      md.deflink,
+      md.code,
+      md.strikethrough,
     ])
-    .run(md).value
+    .run(text).value
  , false, null))
 })
