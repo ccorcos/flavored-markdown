@@ -125,8 +125,7 @@ export class Parser {
 export const always = Parser.of
 
 export const never = value =>
-  new Parser(stream =>
-    new Failure(value, stream))
+  new Parser(stream => new Failure(value, stream))
 
 export const any = new Parser(stream =>
   stream.length > 0
@@ -238,7 +237,7 @@ export const maybe = parser =>
       (v, s) => new Success(v, s),
       (v) => new Success(null, stream)))
 
-export const peek = parser =>
+export const lookahead = parser =>
   new Parser(stream =>
     parser.run(stream)
     .fold(

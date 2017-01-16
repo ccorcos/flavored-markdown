@@ -1,7 +1,7 @@
 import test from 'ava'
 import util from 'util'
-import * as p from './pcombs3'
-import * as md from './index3'
+import * as p from './pcombs'
+import * as md from './index'
 
 const text = `
 # header

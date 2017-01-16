@@ -1,5 +1,5 @@
 import test from 'ava'
-import * as p from './pcombs3'
+import * as p from './pcombs'
 
 // export class Stream {
 test('Stream head', t => {
@@ -21,7 +21,6 @@ test('Stream cursor', t => {
   stream = stream.move(1)
   t.is(stream.head(), 3)
   stream = stream.move(1)
-  // t.throws(() => stream.head())
 })
 
 test('Stream cursor and length', t => {

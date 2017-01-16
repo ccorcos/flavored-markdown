@@ -1,4 +1,4 @@
-import * as p from './pcombs3'
+import * as p from './pcombs'
 
 // TODO: tail call optimization
 
