@@ -18,9 +18,14 @@ this is a [def][link]
 
 This is \`some code\` with \` lower [precedence\`](than a link).
 
+[boop]: bop
+
 - `
 
 test('tmp', t => {
+
+  console.log(md.split(p.whereEq('a')).run('asdasdasdfasdfasdfasdfddds'))
+
   console.log(util.inspect(
     md.multiplePasses([
       md.tokenize,
@@ -31,6 +36,7 @@ test('tmp', t => {
       md.deflink,
       md.code,
       md.strikethrough,
+      md.def,
     ])
     .run(text).value
  , false, null))

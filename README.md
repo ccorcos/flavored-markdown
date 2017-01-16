@@ -1,6 +1,8 @@
 - inline parse with multiple passes
 
 https://vega.github.io/vega-lite/
+https://github.com/knsv/mermaid
+https://khan.github.io/KaTeX/
 
 - multiline recursive parsing
 
@@ -30,3 +32,8 @@ https://vega.github.io/vega-lite/
   - underlined headings
   - headings with trailing #
   - indented code blocks
+
+
+[GoogleMap]{location: "1030 Oak St", streetView: true}
+
+[dsf](sdfsdf)

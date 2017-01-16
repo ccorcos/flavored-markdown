@@ -1,5 +1,7 @@
 import * as p from './pcombs3'
 
+// TODO: tail call optimization
+
 export const onePass = parser =>
   p.zeroOrMore(p.either([parser, p.any]))
 
@@ -15,19 +17,21 @@ export const tokenize = p.either([
   p.string('---').map(raw => ({type: 'hr', raw})),
   p.string('~~').map(raw => ({type: 'del', raw})),
   p.string('- ').map(raw => ({type: 'ul', raw})),
-  p.sequence([p.digit, p.whereEq('.'), p.whereEq(' ')]).map(raw => ({type: 'ol', raw})),
+  p.sequence([p.digit, p.whereEq('.'), p.whereEq(' ')]).map(raw => ({type: 'ol', raw: raw.join('')})),
   p.oneOrMore(p.string('  ')).map(raw => ({type: 'indent', size: raw.length, raw: raw.join('')})),
   p.whereEq('!').map(raw => ({type: '!', raw})),
   p.whereEq('[').map(raw => ({type: '[', raw})),
   p.whereEq(']').map(raw => ({type: ']', raw})),
   p.whereEq('(').map(raw => ({type: '(', raw})),
   p.whereEq(')').map(raw => ({type: ')', raw})),
+  p.whereEq(':').map(raw => ({type: ':', raw})),
   p.whereEq('`').map(raw => ({type: '`', raw})),
   p.whereEq('\n').map(raw => ({type: '\n', raw})),
   p.any.map(raw => ({type: 'char', raw})),
 ])
 
 const tokenType = v => p.where(t => t.type === v)
+
 const untokenize = list => list.map(c => c.raw).join('')
 
 export const text =
@@ -45,9 +49,11 @@ const tokenWrapLR = (l, r) => wrapLR(tokenType(l), tokenType(r))
 
 const tokenWrap = t => tokenWrapLR(t, t)
 
-// TODO: recursively parse inline
+// TODO: recursively parse block and inline
 const inline = x => x
+const block = x => x
 
+// TODO: parse language
 export const fences =
   tokenWrap('fence')
   .map(children => ({
@@ -100,15 +106,57 @@ export const strikethrough =
     raw: inline(children),
   }))
 
+export const def =
+  p.sequence([
+    tokenType('\n'),
+    tokenWrapLR('[', ']'),
+    tokenType(':'),
+    p.zeroOrMore(p.not(tokenType('\n'))),
+  ])
+  .map(result => ({
+    type: 'def',
+    name: untokenize(result[1]),
+    url: untokenize(result[3]),
+  }))
 
-// export const italic = p.map(
-// export const bold = p.map(
+// how is this whole thing going to work?
+// - split into lines
+// - check if list, heading, blockquote, or paragraph
+// - recursively parse inline
 
-// export const list = p.map(
-// export const fences = p.sequence(function*() {
-// export const heading = p.map(
-// export const hr = p.sequence(function*() {
-// export const def = p.sequence(function*() {
-// export const blockquote = p.map(
-// export const bold = p.map(
-// export const inline = _inline()
+// export const split = parser =>
+//   p.zeroOrMore(
+//     p.either([
+//       parser.map(() => null),
+//       p.oneOrMore(p.not(parser)),
+//     ])
+//   )
+//   .map(x => x.filter(x => x !== null))
+
+
+// .concat is just like sequence
+
+// const list =
+//   p.maybe(tokenType('indent'))
+//   .chain(indent =>
+//     p.either([tokenType('ol'), tokenType('ul')])
+//     .chain(list =>
+//       p.zeroOrMore(p.not(tokenType('\n')))
+//       .chain(inline =>
+//         p.zeroOrMore(p.sequence([
+//           tokenType('\n'),
+//           tokenType('indent').chain(i => i.lenght > indent.length ? never() : always(i))
+//
+//         ]))
+//       )
+//     )
+//   )
+
+// italic
+// bold
+
+// list
+// heading
+// blockquote
+// paragraph
+// accordion
