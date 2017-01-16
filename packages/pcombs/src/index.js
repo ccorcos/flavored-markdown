@@ -108,11 +108,11 @@ export class Parser {
   chain(f) {
     return new Parser(stream => this.parse(stream).chain((v, s) => f(v).run(s)))
   }
-  over(p) {
-    return this.chain(v => p.run(v).fold(always, never))
-  }
   fold(s, f) {
     return new Parser(stream => this.parse(stream).fold(s, f))
+  }
+  over(p) {
+    return this.chain(v => p.run(v).fold(always, never))
   }
   filter(f) {
     return this.map(vs => vs.filter(f))
@@ -123,14 +123,14 @@ export class Parser {
   flatten() {
     return this.reduce((a,b) => a.concat(b), [])
   }
-  then(p) {
-    return this.chain(l => p.map(r => [l, r]))
-  }
   append(p) {
     return this.chain(vs => p.map(v => vs.concat([v])))
   }
   concat(p) {
     return this.chain(xs => p.map(ys => xs.concat(ys)))
+  }
+  then(p) {
+    return this.chain(l => p.map(r => [l, r]))
   }
   thenLeft(p) {
     return this.chain(l => p.map(() => l))
@@ -157,51 +157,36 @@ export class Parser {
 
 export const always = Parser.of
 
-export const never = value =>
-  new Parser(stream => new Failure(value, stream))
+export const never = value => new Parser(stream => new Failure(value, stream))
 
 export const any = new Parser(stream =>
   stream.length > 0
     ? new Success(stream.head(), stream.move(1))
     : new Failure('any: unexpected end', stream))
 
-// end is exactly at the end and we move past the end so that we consume it.
+export const where = f => any.where(f)
+
 export const end = new Parser(stream =>
   stream.length === 0
     ? new Success(null, stream.move(1))
-    : new Failure(`end: expected end but found ${stream.head()}`, stream))
-
-export const where = f => any.where(f)
+    : new Failure(`end: expected end`, stream))
 
 export const whereEq = value =>
   where(x => x === value)
   .expected(`whereEq: did not equal ${value}`)
 
-// TODO: should sequence ignore nulls?
 export const sequence = list =>
-  list.slice(1).reduce(
-    (acc, parser) =>
-      acc.chain(values =>
-        parser.map(value =>
-          value === null
-            ? values
-            : values.concat([value]))),
-    list[0].map(value =>
-      value === null
-        ? []
-        : [value]))
+  list.reduce((acc, parser) => acc.append(parser), always([]))
   .expected('sequence: failed')
 
-// TODO: generate
-// p.generate(function*() {
-//   yield tokenType('[')
-//   const children = yield p.zeroOrMore(p.not(tokenType(']')))
-//   yield tokenType(']')
-//   yield tokenType('(')
-//   const url = yield p.zeroOrMore(p.not(tokenType(')')))
-//   yield tokenType(')')
-//   return {children url}
-// })
+export const generate = generator =>
+  new Parser(stream => {
+    const iter = generator()
+    const step = result =>
+      result.done ? always(result.value)
+                  : result.value.chain(v => step(iter.next(v)))
+    return step(iter.next()).run(stream)
+  })
 
 export const either = list =>
   new Parser(stream => {
@@ -221,11 +206,10 @@ export const not = parser =>
     .fold(
       (value, s) => new Failure('not: failed', stream),
       (value, s) =>
-        s.length > 0
-        ? new Success(s.head(), s.move(1))
+        stream.length > 0
+        ? new Success(stream.head(), stream.move(1))
         : new Failure('not: unexpected end', stream)))
 
-// TODO: tail call optimize
 export const zeroOrMore = parser =>
   new Parser(stream =>
     parser.run(stream)
@@ -234,16 +218,12 @@ export const zeroOrMore = parser =>
       (value, s) => new Success([], stream)))
 
 export const oneOrMore = parser =>
-  parser.chain(result =>
-    zeroOrMore(parser).map(rest => [result].concat(rest)))
+  parser.chain(v => zeroOrMore(parser).map(vs => [v].concat(vs)))
 
 export const nOrMore = (n, parser) =>
-  sequence(Array(n).fill(parser))
-  .chain(values =>
-    zeroOrMore(parser).map(more => values.concat(more)))
+  sequence(Array(n).fill(parser)).concat(zeroOrMore(parser))
 
-export const between = (l, p, r) =>
-  sequence([l, p, r]).map(v => v[1])
+export const between = (l, p, r) => sequence([l, p, r]).map(v => v[1])
 
 export const sepBy = (sep, parser) =>
   parser.chain(value =>
@@ -267,13 +247,10 @@ export const lookahead = parser =>
       (v) => new Success(v, stream),
       (v) => new Failure(v, stream)))
 
-export const chars = c =>
-  oneOrMore(whereEq(c))
-  .map(cs => cs.join(''))
+export const chars = c => oneOrMore(whereEq(c)).map(cs => cs.join(''))
 
 export const string = (str) =>
-  sequence(str.split('').map(whereEq))
-  .map(x => x.join(''))
+  sequence(str.split('').map(whereEq)).map(x => x.join(''))
 
 export const digit =
   either([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => whereEq(d.toString())))

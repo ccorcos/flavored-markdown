@@ -1,23 +1,5 @@
 {
-  "name": "flavored-markdown",
-  "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
-  "keywords": [],
-  "author": "",
-  "license": "ask chet",
   "devDependencies": {
-    "ava": "^0.17.0",
-    "babel-cli": "^6.18.0",
-    "babel-polyfill": "^6.20.0",
-    "babel-preset-es2015": "^6.18.0",
-    "babel-preset-stage-0": "^6.16.0"
-  },
-  "ava": {
-    "babel": "inherit",
-    "require": [
-      "babel-register",
-      "babel-polyfill"
-    ]
+    "lerna": "2.0.0-beta.32"
   }
 }

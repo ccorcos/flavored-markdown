@@ -1,54 +1,5 @@
 import test from 'ava'
-import * as p from './pcombs'
-
-// export class Stream {
-test('Stream head', t => {
-  const list = [1,2,3]
-  let stream = new p.Stream(list)
-  t.is(stream.head(), 1)
-  stream = stream.move(1)
-  t.is(stream.head(), 2)
-  stream = stream.move(1)
-  t.is(stream.head(), 3)
-  stream = stream.move(1)
-  t.throws(() => stream.head())
-})
-
-test('Stream cursor', t => {
-  const list = [1,2,3]
-  let stream = new p.Stream(list, 1)
-  t.is(stream.head(), 2)
-  stream = stream.move(1)
-  t.is(stream.head(), 3)
-  stream = stream.move(1)
-})
-
-test('Stream cursor and length', t => {
-  const list = [1,2,3]
-  let stream = new p.Stream(list, 1, 1)
-  t.is(stream.head(), 2)
-  stream = stream.move(1)
-  t.throws(() => stream.head())
-})
-
-test('Stream move', t => {
-  const list = [1,2,3]
-  let stream = new p.Stream(list)
-  t.is(stream.head(), 1)
-  stream = stream.move(2)
-  t.is(stream.head(), 3)
-})
-
-test('Stream slice', t => {
-  const list = [1,2,3,4,5]
-  let stream = new p.Stream(list)
-  stream = stream.slice(1, 3)
-  t.is(stream.head(), 2)
-  stream = stream.move(1)
-  t.is(stream.head(), 3)
-  stream = stream.move(1)
-  t.throws(() => stream.head())
-})
+import * as p from './index'
 
 test('always', t => {
   p.always('x')
@@ -86,59 +37,6 @@ test('any fails at end', t => {
   )
 })
 
-test('Parser map', t => {
-  p.any
-  .map(parseInt)
-  .run('2')
-  .fold(
-    v => t.is(v, 2),
-    v => t.fail()
-  )
-})
-
-test('Parser bimap', t => {
-  const parser = p.whereEq('x').bimap(
-    () => 'yes',
-    () => 'no'
-  )
-
-  parser
-  .run('x')
-  .fold(
-    v => t.is(v, 'yes'),
-    v => t.fail()
-  )
-
-  parser
-  .run('y')
-  .fold(
-    v => t.fail(),
-    v => t.is(v, 'no')
-  )
-})
-
-test('Parser chain', t => {
-  const parser =
-    p.whereEq('x')
-      .chain(x =>
-        p.whereEq('y')
-        .map(y => [x, y]))
-
-  parser
-  .run('xy')
-  .fold(
-    v => t.deepEqual(v, ['x', 'y']),
-    v => t.fail()
-  )
-
-  parser
-  .run('xx')
-  .fold(
-    v => t.fail(),
-    v => t.pass()
-  )
-})
-
 test('end passes at end', t => {
   p.end
   .run('')
@@ -151,6 +49,18 @@ test('end passes at end', t => {
 test('end fails not at end', t => {
   p.end
   .run('x')
+  .fold(
+    v => t.fail(),
+    v => t.pass()
+  )
+})
+
+test('end doesnt happen twice', t => {
+  p.sequence([
+    p.end,
+    p.end,
+  ])
+  .run('')
   .fold(
     v => t.fail(),
     v => t.pass()
@@ -484,16 +394,16 @@ test('maybe backtracks', t => {
 
   parser.run('y')
   .fold(
-    v => t.deepEqual(v, ['y']),
+    v => t.deepEqual(v, [null, 'y']),
     v => t.fail()
   )
 })
 
-test('peek', t => {
+test('lookahead', t => {
   const parser =
     p.whereEq('x')
     .chain(v =>
-      p.peek(p.whereEq('y'))
+      p.lookahead(p.whereEq('y'))
       .map(() => v))
 
   parser.run('xy')
@@ -509,11 +419,11 @@ test('peek', t => {
   )
 })
 
-test('peek backtracks', t => {
+test('lookahead backtracks', t => {
   const parser =
     p.whereEq('x')
     .chain(v =>
-      p.peek(p.whereEq('y'))
+      p.lookahead(p.whereEq('y'))
       .map(() => v))
     .chain(v =>
       p.whereEq('y'))
@@ -553,5 +463,76 @@ test('string', t => {
   .fold(
     v => t.fail(),
     v => t.pass()
+  )
+})
+
+test('digit', t => {
+  p.digit
+  .run('1')
+  .fold(
+    v => t.pass(),
+    v => t.fail()
+  )
+})
+
+test('scan', t => {
+  p.scan(p.whereEq('x').map(v => v.toUpperCase()))
+  .run('wxyz')
+  .fold(
+    v => t.deepEqual(v, ['w', 'X', 'y', 'z']),
+    v => t.pass()
+  )
+})
+
+test('scan', t => {
+  p.scanOver([
+    p.whereEq('x').map(v => v.toUpperCase()),
+    p.whereEq('y').map(v => v.toUpperCase())
+  ])
+  .run('wxyz')
+  .fold(
+    v => t.deepEqual(v, ['w', 'X', 'Y', 'z']),
+    v => t.pass()
+  )
+})
+
+test('wrapLR', t => {
+  p.wrapLR(p.whereEq('x'), p.whereEq('z'))
+  .run('xyyz')
+  .fold(
+    v => t.deepEqual(v, ['y', 'y']),
+    v => t.pass()
+  )
+})
+
+test('wrap', t => {
+  p.wrap(p.whereEq('x'))
+  .run('xyzx')
+  .fold(
+    v => t.deepEqual(v, ['y', 'z']),
+    v => t.pass()
+  )
+})
+
+test('rest', t => {
+  p.rest
+  .run('xyz')
+  .fold(
+    v => t.deepEqual(v, ['x', 'y', 'z']),
+    v => t.pass()
+  )
+})
+
+test('generate', t => {
+  p.generate(function*() {
+    yield p.whereEq('x')
+    const ys = yield p.zeroOrMore(p.whereEq('y'))
+    yield p.whereEq('x')
+    return ys.length
+  })
+  .run('xyyyx')
+  .fold(
+    v => t.is(v, 3),
+    v => t.fail()
   )
 })
