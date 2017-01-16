@@ -1,0 +1,7 @@
+
+
+# Contributing
+
+```sh
+lerna bootstrap
+```
