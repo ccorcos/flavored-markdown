@@ -5,7 +5,9 @@
 Here is *italics* and **bold** and `inline code`.
 Here is a newline in the same paragraph.
 
-Here is a new paragraph. Some **bold *itialic* text**.
+Here is a new paragraph. Some **bold *itialic* text**. And some more complex cases
+of ***bold**italics* and ***italics*bold** and don't forget *incomplete**bold* and
+**incomplete*italics** and *bold**inside**italics*.
 
 
 ```
@@ -44,11 +46,13 @@ and a break
       code inside li22
 
 
-some ~deleted test~
+some ~~deleted test~~ and __underlined text__
 
-[a link](http://www.google.com)
+[a *link*](http://www.google.com)
 
 ![an image](https://avatars0.githubusercontent.com/u/1794527?v=3&s=460)
+
+[![](image)](link)
 
 | Tables        | Are           | Cool  |
 | ------------- |:-------------:| -----:|
