@@ -1,3 +1,17 @@
+- lerna
+- refactor pcombs into multiple files
+- more pcombs tests
+- markdown parser
+
+- bold / italics
+- string renderer
+- react renderer
+- browser editor
+
+- custom react widgets
+- other custom blocks
+
+
 - inline parse with multiple passes
 
 https://vega.github.io/vega-lite/

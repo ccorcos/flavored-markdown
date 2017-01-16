@@ -63,6 +63,9 @@ export class Success extends Result {
   fold(s, f) {
     return s(this.value, this.stream)
   }
+  result() {
+    return this.value
+  }
 }
 
 export class Failure extends Result {
@@ -77,6 +80,9 @@ export class Failure extends Result {
   }
   fold(s, f) {
     return f(this.value, this.stream)
+  }
+  result() {
+    throw new Error(`Failed parse ${this.value}`)
   }
 }
 
@@ -94,25 +100,52 @@ export class Parser {
     }
   }
   map(f) {
-    return new Parser(stream =>
-      this.parse(stream).map(f))
+    return new Parser(stream => this.parse(stream).map(f))
   }
   bimap(s, f) {
-    return new Parser(stream =>
-      this.parse(stream).bimap(s, f))
+    return new Parser(stream => this.parse(stream).bimap(s, f))
   }
   chain(f) {
-    return new Parser(stream =>
-      this.parse(stream)
-      .chain((v, s) => f(v).run(s)))
+    return new Parser(stream => this.parse(stream).chain((v, s) => f(v).run(s)))
+  }
+  over(p) {
+    return this.chain(v => p.run(v).fold(always, never))
   }
   fold(s, f) {
-    return new Parser(stream =>
-      this.parse(stream).fold(s, f))
+    return new Parser(stream => this.parse(stream).fold(s, f))
+  }
+  filter(f) {
+    return this.map(vs => vs.filter(f))
+  }
+  reduce(f, i) {
+    return this.map(vs => vs.reduce(f, i))
+  }
+  flatten() {
+    return this.reduce((a,b) => a.concat(b), [])
+  }
+  then(p) {
+    return this.chain(l => p.map(r => [l, r]))
+  }
+  append(p) {
+    return this.chain(vs => p.map(v => vs.concat([v])))
+  }
+  concat(p) {
+    return this.chain(xs => p.map(ys => xs.concat(ys)))
+  }
+  thenLeft(p) {
+    return this.chain(l => p.map(() => l))
+  }
+  thenRight(p) {
+    return this.chain(() => p)
+  }
+  where(f) {
+    return this.chain(v =>
+      f(v) ? always(v)
+           : never(`.where predicate did not match ${v}`)
+    )
   }
   static of(value) {
-    return new Parser((stream) =>
-      new Success(value, stream))
+    return new Parser((stream) => new Success(value, stream))
   }
   expected(value) {
     return this.bimap(
@@ -132,24 +165,13 @@ export const any = new Parser(stream =>
     ? new Success(stream.head(), stream.move(1))
     : new Failure('any: unexpected end', stream))
 
+// end is exactly at the end and we move past the end so that we consume it.
 export const end = new Parser(stream =>
-  stream.length <= 0
-    ? new Success(null, stream)
+  stream.length === 0
+    ? new Success(null, stream.move(1))
     : new Failure(`end: expected end but found ${stream.head()}`, stream))
 
-export const where = predicate =>
-  new Parser(stream => {
-    if (stream.length > 0) {
-      const value = stream.head()
-      if (predicate(value)) {
-        return new Success(value, stream.move(1))
-      } else {
-        return new Failure(`where: predicate did not match ${value}`, stream)
-      }
-    } else {
-      return new Failure('where: unexpected end', stream)
-    }
-  })
+export const where = f => any.where(f)
 
 export const whereEq = value =>
   where(x => x === value)
@@ -203,6 +225,7 @@ export const not = parser =>
         ? new Success(s.head(), s.move(1))
         : new Failure('not: unexpected end', stream)))
 
+// TODO: tail call optimize
 export const zeroOrMore = parser =>
   new Parser(stream =>
     parser.run(stream)
@@ -254,3 +277,18 @@ export const string = (str) =>
 
 export const digit =
   either([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => whereEq(d.toString())))
+
+// scan a parser across a stream
+export const scan = parser => zeroOrMore(either([parser, any]))
+
+export const scanOver = parsers =>
+  parsers.reduce(
+    (acc, parser) => acc.over(scan(parser)),
+    scan(any)
+  )
+
+export const wrapLR = (l, r) => between(l, zeroOrMore(not(r)), r)
+
+export const wrap = (p) => wrapLR(p, p)
+
+export const rest = zeroOrMore(any)
