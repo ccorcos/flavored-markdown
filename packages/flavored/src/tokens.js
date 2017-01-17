@@ -1,8 +1,8 @@
-import * as p from './pcombs'
+import * as p from 'pcombs'
 
 // create tokens from text
 export const tokens = p.either([
-  p.whereEq('\\').chain(() => p.any).map(raw => ({type: 'char', raw})),
+  p.whereEq('\\').then(p.any).map(raw => ({type: 'char', raw: raw.join('')})),
   p.chars('*').map(raw => ({type: '*s', length: raw.length, raw})),
   p.chars('#').map(raw => ({type: '#s', length: raw.length, raw})),
   p.string('__').map(raw => ({type: '__', raw})),
@@ -10,8 +10,8 @@ export const tokens = p.either([
   p.string('---').map(raw => ({type: '---', raw})),
   p.string('~~').map(raw => ({type: '~~', raw})),
   p.string('-').map(raw => ({type: '-', raw})),
-  p.sequence([p.digit, p.whereEq('.')]).map(raw => ({type: '#.', raw: raw.join('')})),
-  p.string('  ')).map(raw => ({type: 'indent', raw})),
+  p.digit.then(p.whereEq('.')).map(raw => ({type: '#.', raw: raw.join('')})),
+  p.string('  ').map(raw => ({type: 'indent', raw})),
   p.whereEq('!').map(raw => ({type: '!', raw})),
   p.whereEq('[').map(raw => ({type: '[', raw})),
   p.whereEq(']').map(raw => ({type: ']', raw})),
@@ -25,7 +25,7 @@ export const tokens = p.either([
 ])
 
 // given a list of tokens, convert back to raw text
-export const untokenize = list => list.map(c => c.raw).join('').trim()
+export const untokenize = list => list.map(c => c.raw).join('')
 
 // parse for tokens
 export const tokenOfType = v => p.where(t => t.type === v)
@@ -47,4 +47,5 @@ export const tokensToText =
   }))
 
 // tokenize a stream of text
+// TODO: tokenize should be a function just like inline
 export const tokenize = p.scanOver([tokens, charsToText])

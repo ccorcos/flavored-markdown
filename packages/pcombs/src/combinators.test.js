@@ -484,14 +484,14 @@ test('scan', t => {
   )
 })
 
-test('scan', t => {
+test('scanOver', t => {
   p.scanOver([
+    p.string('xy'),
     p.whereEq('x').map(v => v.toUpperCase()),
-    p.whereEq('y').map(v => v.toUpperCase())
   ])
-  .run('wxyz')
+  .run('wxyzx')
   .fold(
-    v => t.deepEqual(v, ['w', 'X', 'Y', 'z']),
+    v => t.deepEqual(v, ['w', 'xy', 'z', 'X']),
     v => t.pass()
   )
 })

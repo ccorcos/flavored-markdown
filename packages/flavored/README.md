@@ -1,3 +1,5 @@
+- prettifier
+
 - lerna
 - refactor pcombs into multiple files
 - more pcombs tests

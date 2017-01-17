@@ -1,6 +1,6 @@
 import test from 'ava'
 import util from 'util'
-import * as p from './pcombs'
+import * as p from 'pcombs'
 import * as md from './index'
 
 const text = `

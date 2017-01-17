@@ -1,4 +1,4 @@
-import * as p from './pcombs'
+import * as p from 'pcombs'
 import { tokenOfType, tokenize } from './tokens'
 import { inline } from './inline'
 

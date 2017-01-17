@@ -1,5 +1,5 @@
-import * as p from './pcombs'
-import { tokenOfType, untokenize } from './tokens'
+import * as p from 'pcombs'
+import { tokenOfType, untokenize, tokensToText } from './tokens'
 
 export const code =
   p.wrap(tokenOfType('`'))
@@ -66,14 +66,16 @@ const precedence = [
   italicBold,
   strikethrough,
   underline,
-  t.tokensToText,
+  tokensToText,
 ]
 
 export const inlineAfter = (parser, tokenList) =>
-  p.scanOver(precedence.slice(precedence.indexOf(p)))
+  p.scanOver(precedence.slice(precedence.indexOf(parser) + 1))
   .run(tokenList)
   .fold(
     v => v,
-    e => throw new Error(`Unexpected error: ${e}`))
+    e => {
+      throw new Error(`Unexpected error: ${e}`)
+    })
 
 export const inline = tokenList => inlineAfter(null, tokenList)
