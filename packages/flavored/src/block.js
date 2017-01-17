@@ -27,8 +27,8 @@ export const fences =
   )
   .map(([lang, children]) => ({
     type: 'fences',
-    lang: untokenize(lang),
-    code: untokenize(children),
+    lang: untokenize(lang).trim(),
+    code: untokenize(children).trim(),
   }))
 
 export const def =
@@ -39,8 +39,8 @@ export const def =
   ])
   .map(([name, _, value]) => ({
     type: 'def',
-    name: untokenize(name),
-    url: untokenize(value),
+    name: untokenize(name).trim(),
+    url: untokenize(value).trim(),
   }))
 
 const listItem =

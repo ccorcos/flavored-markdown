@@ -5,7 +5,7 @@ export const code =
   p.wrap(tokenOfType('`'))
   .map(children => ({
     type: 'code',
-    text: untokenize(children),
+    text: untokenize(children).trim(),
   }))
 
 export const link =
@@ -15,7 +15,7 @@ export const link =
   ])
   .map(([children, url]) => ({
     type: 'link',
-    url: untokenize(url),
+    url: untokenize(url).trim(),
     children: inlineAfter(link, children),
   }))
 
@@ -27,8 +27,8 @@ export const image =
   ])
   .map(([_, alt, url]) => ({
     type: 'image',
-    alt: untokenize(alt),
-    url: untokenize(url),
+    alt: untokenize(alt).trim(),
+    url: untokenize(url).trim(),
   }))
 
 export const deflink =
@@ -38,7 +38,7 @@ export const deflink =
   ])
   .map(([children, def]) => ({
     type: 'deflink',
-    def: untokenize(def),
+    def: untokenize(def).trim(),
     children: inlineAfter(deflink, children),
   }))
 
