@@ -130,66 +130,70 @@ test('nested list', t => {
   )
 })
 
-// test('multiline list', t => {
-//   const tokens = [
-//     {type: '-', raw: '-'},
-//     {type: 'text', raw: ' first item'},
-//     {type: '\n', raw: '\n'},
-//     {type: '-', raw: '-'},
-//     {type: 'text', raw: 'second item'},
-//     {type: '\n', raw: '\n'},
-//     {type: 'indent', raw: '  '},
-//     {type: 'text', raw: 'still second item'},
-//     {type: '\n', raw: '\n'},
-//     {type: '\n', raw: '\n'},
-//     {type: 'indent', raw: '  '},
-//     {type: 'text', raw: 'now its a paragraph'},
-//     {type: '\n', raw: '\n'},
-//     {type: 'indent', raw: '  '},
-//     {type: '#.', raw: '1.'},
-//     {type: 'text', raw: 'second nested first item'},
-//   ]
-//
-//   const expected = {
-//     type: 'list',
-//     ordered: false,
-//     children: [{
-//       type: 'listItem',
-//       ordered: false,
-//       children: [{type: 'text', raw: ' first item\n'}]
-//     }, {
-//       type: 'listItem',
-//       ordered: false,
-//       children: [{
-//         type: 'text',
-//         raw: 'second item\nstill second item\n',
-//       }, {
-//         type: 'list',
-//         ordered: true,
-//         children: [{
-//           type: 'listItem',
-//           ordered: true,
-//           children: [
-//             {type: 'text', raw: 'second nested first item'}
-//           ]
-//         }]
-//       }]
-//     }]
-//   }
-//
-//   b.list
-//   .run(tokens)
-//   .fold(
-//     v => {
-//       const util = require('util')
-//       console.log(util.inspect(v, {depth: 99}))
-//       console.log(util.inspect(expected, {depth: 99}))
-//       t.deepEqual(v, expected)
-//     },
-//     v => t.fail()
-//   )
-//
-// })
+test('multiline list', t => {
+  const tokens = [
+    {type: '-', raw: '-'},
+    {type: 'text', raw: ' first item'},
+    {type: '\n', raw: '\n'},
+    {type: '-', raw: '-'},
+    {type: 'text', raw: 'second item'},
+    {type: '\n', raw: '\n'},
+    {type: 'indent', raw: '  '},
+    {type: 'text', raw: 'still second item'},
+    {type: '\n', raw: '\n'},
+    {type: '\n', raw: '\n'},
+    {type: 'indent', raw: '  '},
+    {type: 'text', raw: 'now its a paragraph'},
+    {type: '\n', raw: '\n'},
+    {type: 'indent', raw: '  '},
+    {type: '#.', raw: '1.'},
+    {type: 'text', raw: 'second nested first item'},
+  ]
+
+  const expected = {
+    type: 'list',
+    ordered: false,
+    children: [{
+      type: 'listItem',
+      ordered: false,
+      children: [{type: 'text', raw: ' first item\n'}]
+    }, {
+      type: 'listItem',
+      ordered: false,
+      children: [{
+        type: 'paragraph',
+        children: [{
+          type: 'text',
+          raw: 'second item\nstill second item\n',
+        }]
+      }, {
+        type: 'paragraph',
+        children: [{
+          type: 'text',
+          raw: 'now its a paragraph\n',
+        }]
+      }, {
+        type: 'list',
+        ordered: true,
+        children: [{
+          type: 'listItem',
+          ordered: true,
+          children: [
+            {type: 'text', raw: 'second nested first item'}
+          ]
+        }]
+      }]
+    }]
+  }
+
+  b.list
+  .run(tokens)
+  .fold(
+    v => t.deepEqual(v, expected),
+    v => t.fail()
+  )
+
+})
 
 test('simple blockquote', t => {
   const tokens = [
@@ -236,7 +240,7 @@ test('multiline blockquote', t => {
       type: 'paragraph',
       children: [{
         type: 'text',
-        raw: ' hello',
+        raw: ' hello\n',
       }]
     }, {
       type: 'paragraph',
@@ -269,28 +273,6 @@ test('heading', t => {
         type: 'text',
         raw: 'hello h2',
       }],
-    }),
-    v => t.fail()
-  )
-})
-
-test('paragraph', t => {
-  b.paragraph
-  .run([
-    {type: 'text', raw: 'a'},
-    {type: '\n', raw: '\n'},
-    {type: 'text', raw: 'b'},
-    {type: '\n', raw: '\n'},
-    {type: '\n', raw: '\n'},
-    {type: 'text', raw: 'c'},
-  ])
-  .fold(
-    v => t.deepEqual(v, {
-      type: 'paragraph',
-      children: [{
-        type: 'text',
-        raw: 'a\nb',
-      }]
     }),
     v => t.fail()
   )

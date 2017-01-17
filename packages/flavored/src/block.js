@@ -104,27 +104,45 @@ export const heading =
     children: inline(children)
   }))
 
-const endOfParagraph =
-  p.either([
-    p.end,
-    p.nOrMore(2, tokenOfType('\n')),
-    p.where(t => !Boolean(t.raw)),
-  ])
-
-export const paragraph =
-  p.oneOrMore(p.not(endOfParagraph))
-  .thenLeft(p.maybe(p.nOrMore(2, tokenOfType('\n'))))
-  .map(children => ({
-    type: 'paragraph',
-    children: inline(children),
-  }))
+// const endOfParagraph =
+//   p.either([
+//     p.end,
+//     p.nOrMore(2, tokenOfType('\n')),
+//     p.where(t => !Boolean(t.raw)),
+//   ])
+//
+// export const paragraph =
+//   p.oneOrMore(p.not(endOfParagraph))
+//   .thenLeft(p.maybe(p.nOrMore(2, tokenOfType('\n'))))
+//   .map(children => ({
+//     type: 'paragraph',
+//     children: inline(children),
+//   }))
 
 // TODO: accordion
 // + this is a question
 // | this is the answer
 // | that gets collapsed
 
-const line = restOfLine.map(children => ({type: 'line', children}))
+// const line =
+//   restOfLine.map(children =>
+//     children.length === 0
+//     ? {type: 'blank'}
+//     : {type: 'line', children}
+//   )
+
+const endOfBlock = p.where(t => !Boolean(t.raw))
+
+
+const line =
+  p.oneOrMore(p.not(p.either([endOfLine, endOfBlock])))
+  .append(p.maybe(endOfLine))
+  .filter(x => x !== null)
+  .map(children => ({type: 'line', children}))
+
+const blank =
+  p.oneOrMore(tokenOfType('\n'))
+  .map(() => ({type: 'blank'}))
 
 const precedence = [
   list,
@@ -133,6 +151,7 @@ const precedence = [
   def,
   fences,
   line,
+  blank,
 ]
 
 // TODO: need to separate paragraphs based on blank lines
@@ -148,4 +167,5 @@ const linesToParagraph =
 export const block = (tokenList) =>
   p.scanOver(precedence)
   .over(p.scan(linesToParagraph))
+  .filter(t => t.type !== 'blank')
   .run(tokenList).result()

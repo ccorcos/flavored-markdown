@@ -1,9 +1,6 @@
 
 # TODO
 
-- instead of paragraph, use restOfLine and aggregate into paragraphs instead
-- nested multiline lists
-- block tests
 - flavored bold italics inline parser
 - end to end test
 
