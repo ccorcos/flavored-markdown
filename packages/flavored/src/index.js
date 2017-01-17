@@ -9,8 +9,4 @@ const preprocess = string =>
   .join('\n')
 
 export const parse = string =>
-  tokenize
-  .over(block)
-  .run(preprocess(string))
-  .result()
-  // unescape
+  block(tokenize(preprocess(string)))

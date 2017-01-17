@@ -1,35 +1,52 @@
 import * as p from 'pcombs'
-import { tokenOfType, tokenize } from './tokens'
+import { tokenOfType, untokenize } from './tokens'
 import { inline } from './inline'
 
 const endOfLine = p.either([p.end, tokenOfType('\n')])
 
-const restOfLine = p.zeroOrMore(p.not(endOfLine)).append(endOfLine)
+const restOfLine =
+  p.zeroOrMore(p.not(endOfLine))
+  .append(endOfLine)
+  .filter(x => x !== null)
 
 const indentedBlock =
   p.zeroOrMore(
     p.either([
-      // blank line
       tokenOfType('\n').map(v => [v]),
-      // intented line
       tokenOfType('indent').thenRight(restOfLine),
     ])
   ).flatten()
 
 // TODO: enforce beginning of line
+// export const fences =
+//   p.wrap(tokenOfType('```'))
+//   .over(
+//     p.sequence([
+//       restOfLine,
+//       p.rest,
+//     ])
+//   )
+//   .map(([lang, children]) => ({
+//     type: 'fences',
+//     lang: untokenize(lang).trim(),
+//     code: untokenize(children).trim(),
+//   }))
+
 export const fences =
-  p.wrap(tokenOfType('```'))
-  .over(
-    p.sequence([
-      restOfLine,
-      p.rest,
-    ])
+  tokenOfType('```')
+  .thenRight(restOfLine)
+  .chain(lang =>
+    p.zeroOrMore(restOfLine.where(v => v.length === 0 || v[0].type !== '```'))
+    .flatten()
+    .chain(children =>
+      tokenOfType('```')
+      .map(() => ({
+        type: 'fences',
+        lang: untokenize(lang).trim(),
+        text: untokenize(children).trim(),
+      }))
+    )
   )
-  .map(([lang, children]) => ({
-    type: 'fences',
-    lang: untokenize(lang).trim(),
-    code: untokenize(children).trim(),
-  }))
 
 export const def =
   p.sequence([
@@ -40,7 +57,7 @@ export const def =
   .map(([name, _, value]) => ({
     type: 'def',
     name: untokenize(name).trim(),
-    url: untokenize(value).trim(),
+    value: untokenize(value).trim(),
   }))
 
 const listItem =
@@ -52,14 +69,15 @@ const listItem =
   .map(([start, children]) => ({
       type: 'listItem',
       ordered: start.type === '#.',
-      children: block(children)
-    }))
+      children: block(children),
+    })
   )
 
 export const list =
   p.oneOrMore(listItem)
   .map(children => ({
     type: 'list',
+    ordered: children[0].ordered,
     children,
   }))
 
@@ -89,8 +107,8 @@ const endOfParagraph =
   ])
 
 export const paragraph =
-  p.zeroMore(p.not(endOfParagraph))
-  .append(endOfParagraph)
+  p.zeroOrMore(p.not(endOfParagraph))
+  .thenLeft(endOfParagraph)
   .map(children => ({
     type: 'paragraph',
     children: inline(children),
@@ -110,4 +128,5 @@ const precedence = [
   paragraph,
 ]
 
-export const block = (tokenList) => p.scanOver(precedence)
+export const block = (tokenList) =>
+  p.scanOver(precedence).run(tokenList).result()

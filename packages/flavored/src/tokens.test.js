@@ -44,16 +44,13 @@ const tokenized = [
 ]
 
 test('tokenize', t => {
-  tokenize.run(md)
-  .fold(
-    v => {
-      // const util = require('util')
-      // console.log(util.inspect(v, {depth: 99}))
-      // console.log(util.inspect(tokenized, {depth: 99}))
-      t.deepEqual(v, tokenized)
-    },
-    v => t.fail()
-  )
+  const result = tokenize(md)
+
+  // const util = require('util')
+  // console.log(util.inspect(result, {depth: 99}))
+  // console.log(util.inspect(tokenized, {depth: 99}))
+
+  t.deepEqual(result, tokenized)
 })
 
 test('untokenize', t => {

@@ -6,6 +6,7 @@
 - flavored prettifier
 - string renderer
 - react renderer
+
 - flavored end to end tests
 - flavored performance tests
 - browser editor

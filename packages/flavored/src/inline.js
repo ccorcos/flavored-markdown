@@ -72,10 +72,6 @@ const precedence = [
 export const inlineAfter = (parser, tokenList) =>
   p.scanOver(precedence.slice(precedence.indexOf(parser) + 1))
   .run(tokenList)
-  .fold(
-    v => v,
-    e => {
-      throw new Error(`Unexpected error: ${e}`)
-    })
+  .result()
 
 export const inline = tokenList => inlineAfter(null, tokenList)

@@ -46,6 +46,5 @@ export const tokensToText =
     raw: untokenize(children),
   }))
 
-// tokenize a stream of text
-// TODO: tokenize should be a function just like inline
-export const tokenize = p.scanOver([tokens, charsToText])
+export const tokenize = string =>
+  p.scanOver([tokens, charsToText]).run(string).result()
