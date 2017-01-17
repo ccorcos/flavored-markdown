@@ -3,6 +3,7 @@
 
 - flavored bold italics inline parser
 - end to end test
+- unescaping
 
 - prettifier renderer
 - string renderer
