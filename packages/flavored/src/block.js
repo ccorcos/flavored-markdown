@@ -17,21 +17,6 @@ const indentedBlock =
     ])
   ).flatten()
 
-// TODO: enforce beginning of line
-// export const fences =
-//   p.wrap(tokenOfType('```'))
-//   .over(
-//     p.sequence([
-//       restOfLine,
-//       p.rest,
-//     ])
-//   )
-//   .map(([lang, children]) => ({
-//     type: 'fences',
-//     lang: untokenize(lang).trim(),
-//     code: untokenize(children).trim(),
-//   }))
-
 export const fences =
   tokenOfType('```')
   .thenRight(restOfLine)
@@ -60,16 +45,41 @@ export const def =
     value: untokenize(value).trim(),
   }))
 
+const allTokensAreTypes = (types, tokens) =>
+  tokens.reduce(
+    (acc, t) => acc && (types.indexOf(t.type) !== -1),
+    true
+  )
+
+const all = (fn, list) =>
+  list.reduce((acc, v) => acc && fn(v), true)
+
+const flattenParagraph = children => {
+  if (children.length === 1) {
+    if (children[0].type === 'paragraph') {
+      return children[0].children
+    }
+  }
+  if (children.length > 1) {
+    if (children[0].type === 'paragraph') {
+      if (all(v => v.type === 'list', children.slice(1))) {
+        return children[0].children.concat(children.slice(1))
+      }
+    }
+  }
+  return children
+}
+
 const listItem =
   p.either([
     tokenOfType('-'),
     tokenOfType('#.'),
   ])
-  .then(restOfLine.concat(indentedBlock),)
+  .then(restOfLine.concat(indentedBlock))
   .map(([start, children]) => ({
       type: 'listItem',
       ordered: start.type === '#.',
-      children: block(children),
+      children: flattenParagraph(block(children)),
     })
   )
 
@@ -103,12 +113,13 @@ export const heading =
 const endOfParagraph =
   p.either([
     p.end,
-    p.nOrMore(2, tokenOfType('\n'))
+    p.nOrMore(2, tokenOfType('\n')),
+    p.where(t => !Boolean(t.raw)),
   ])
 
 export const paragraph =
-  p.zeroOrMore(p.not(endOfParagraph))
-  .thenLeft(endOfParagraph)
+  p.oneOrMore(p.not(endOfParagraph))
+  .thenLeft(p.maybe(p.nOrMore(2, tokenOfType('\n'))))
   .map(children => ({
     type: 'paragraph',
     children: inline(children),

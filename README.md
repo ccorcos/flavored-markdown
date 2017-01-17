@@ -1,6 +1,12 @@
 
 # TODO
 
+- instead of paragraph, use restOfLine and aggregate into paragraphs instead
+
+- enforce block passes to start at beginning of a line
+- paragraph can be joined from free lines
+- nested multiline lists
+
 - flavored block tests
 - flavored bold italics inline parser
 - flavored prettifier

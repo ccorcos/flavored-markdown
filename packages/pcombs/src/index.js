@@ -153,6 +153,12 @@ export class Parser {
       inside => [value, inside]
     )
   }
+  tap(f) {
+    return this.map(value => {
+      f(value)
+      return value
+    })
+  }
 }
 
 export const always = Parser.of
