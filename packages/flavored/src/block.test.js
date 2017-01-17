@@ -110,10 +110,11 @@ test('simple blockquote', t => {
         type: 'paragraph',
         children: [{
           type: 'text',
-          raw: ' hello\nworld',
+          raw: ' hello\n world',
         }]
       }]
-    })
+    }),
+    () => t.fail()
   )
 })
 
@@ -144,7 +145,8 @@ test('multiline blockquote', t => {
           raw: ' world',
         }]
       }]
-    })
+    }),
+    v => t.fail()
   )
 })
 
@@ -162,7 +164,8 @@ test('heading', t => {
         type: 'text',
         raw: 'hello h2',
       }],
-    })
+    }),
+    v => t.fail()
   )
 })
 
@@ -183,7 +186,8 @@ test('paragraph', t => {
         type: 'text',
         raw: 'a\nb',
       }]
-    })
+    }),
+    v => t.fail()
   )
 })
 
