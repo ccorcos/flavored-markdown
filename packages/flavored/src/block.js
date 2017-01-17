@@ -45,12 +45,6 @@ export const def =
     value: untokenize(value).trim(),
   }))
 
-const allTokensAreTypes = (types, tokens) =>
-  tokens.reduce(
-    (acc, t) => acc && (types.indexOf(t.type) !== -1),
-    true
-  )
-
 const all = (fn, list) =>
   list.reduce((acc, v) => acc && fn(v), true)
 
@@ -130,14 +124,28 @@ export const paragraph =
 // | this is the answer
 // | that gets collapsed
 
+const line = restOfLine.map(children => ({type: 'line', children}))
+
 const precedence = [
   list,
   blockquote,
   heading,
   def,
   fences,
-  paragraph,
+  line,
 ]
 
+// TODO: need to separate paragraphs based on blank lines
+const linesToParagraph =
+  p.oneOrMore(tokenOfType('line'))
+  .map(lines => lines.map(line => line.children))
+  .flatten()
+  .map(children => ({
+    type: 'paragraph',
+    children: inline(children),
+  }))
+
 export const block = (tokenList) =>
-  p.scanOver(precedence).run(tokenList).result()
+  p.scanOver(precedence)
+  .over(p.scan(linesToParagraph))
+  .run(tokenList).result()
