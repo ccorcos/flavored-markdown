@@ -1,46 +1,10 @@
+# Parser Combinators and Markdown Parser
 
-# TODO
+This project is an exploration into parser combinators and an attempt to build a markdown parser using parser combinators. 
 
-- flavored bold italics inline parser
-- end to end test
-- unescaping
+It just so happens that in the middle of building this project, I discovered two other libraries that make these attempts obsolete.
 
-- prettifier renderer
-- string renderer
-- react renderer
+- [Parsimmon](https://github.com/jneen/parsimmon) is a solid parser combinators library
+- [Markdown-It](https://github.com/markdown-it/markdown-it) is an awesome hackable markdown parser.
 
-- flavored end to end tests
-- flavored performance tests
-- browser editor
-- custom react widgets
-  - google maps
-  - osm maps
-  - yelp
-  - yahoo finance
-  - trip advisor
-  - js playground
-- other custom blocks
-  - https://vega.github.io/vega-lite/
-  - https://github.com/knsv/mermaid
-  - https://khan.github.io/KaTeX/
-  - subscript / superscript?
-  - references
-  - gfm table
-  - accordion
-- tail call optimization
-- next.js demo app
-- flavored readme
-- pcombs readme
-- pcombs error formatting
-- cli tool
-- webpack loader
-
-- next.js blog with github (or gitlab) auth using JWT
-
-
-
-# Contributing
-
-```sh
-lerna bootstrap
-```
+My goal was to build a markdown parser that renders with React so my approach was to build an AST, but it seems a better approahc is to use markdown-it and generate the AST using an XML parser.
